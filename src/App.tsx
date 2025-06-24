@@ -11,10 +11,15 @@ import { WeatherPanel } from './components/WeatherPanel';
 import { AlertsPanel } from './components/AlertsPanel';
 import { OperationsLog } from './components/OperationsLog';
 import { NaturalLanguageAssistant } from './components/NaturalLanguageAssistant';
+import { FlightTracking } from './components/FlightTracking';
+import { FlightPlanManagement } from './components/FlightPlanManagement';
+import { SchedulingFlow } from './components/SchedulingFlow';
+import { ResourceManagement } from './components/ResourceManagement';
 import type { AutomatedProcess } from './hooks/useRealtimeData';
 
 type ActiveView = 'surface-map' | 'runway-status' | 'gate-management' | 'vehicle-tracking' | 
-                  'communications' | 'weather' | 'alerts' | 'operations-log' | 'ai-assistant';
+                  'communications' | 'weather' | 'alerts' | 'operations-log' | 'ai-assistant' |
+                  'flight-tracking' | 'flight-plan-management' | 'scheduling-flow' | 'resource-management';
 
 function App() {
   const [activeView, setActiveView] = useState<ActiveView>('surface-map');
@@ -60,6 +65,10 @@ function App() {
     { id: 'weather', label: 'Weather Data', icon: '🌤️' },
     { id: 'alerts', label: 'Alerts & Warnings', icon: '⚠️' },
     { id: 'operations-log', label: 'Operations Log', icon: '📋' },
+    { id: 'flight-tracking', label: 'Flight Tracking', icon: '✈️' },
+    { id: 'flight-plan-management', label: 'Flight Plan Management', icon: '📄' },
+    { id: 'scheduling-flow', label: 'Scheduling & Flow', icon: '🕐' },
+    { id: 'resource-management', label: 'Resource Management', icon: '⚙️' },
     { id: 'ai-assistant', label: 'AI Command Center', icon: '🤖' }
   ] as const;
 
@@ -122,6 +131,30 @@ function App() {
               <OperationsLog />
             </div>
           );
+        case 'flight-tracking':
+          return (
+            <div className="h-full">
+              <FlightTracking />
+            </div>
+          );
+        case 'flight-plan-management':
+          return (
+            <div className="h-full">
+              <FlightPlanManagement />
+            </div>
+          );
+        case 'scheduling-flow':
+          return (
+            <div className="h-full">
+              <SchedulingFlow />
+            </div>
+          );
+        case 'resource-management':
+          return (
+            <div className="h-full">
+              <ResourceManagement />
+            </div>
+          );
         case 'ai-assistant':
           return (
             <div className="h-full">
@@ -161,8 +194,6 @@ function App() {
   };
 
   const activeAutomatedProcesses = automatedProcesses.filter(p => p.status === 'in-progress');
-  const totalAircraft = aircraft.length;
-  const totalVehicles = vehicles.length;
 
   return (
     <div className="h-screen flex bg-black text-yellow-400 font-mono">

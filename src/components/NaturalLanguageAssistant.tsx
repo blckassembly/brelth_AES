@@ -23,7 +23,7 @@ export const NaturalLanguageAssistant: React.FC<NaturalLanguageAssistantProps> =
     {
       id: '1',
       type: 'assistant',
-      message: 'AES Command & Control AI ready. I can execute ATC commands, analyze traffic patterns, and provide real-time flight data from commercial, military, civilian, and private sources. New: Automated processes available - try the automation buttons below for one-click operations.',
+      message: 'AES Command & Control AI ready. I can execute ATC commands, analyze traffic patterns, provide real-time flight data from commercial, military, civilian, and private sources, and show active/inbound flights for LGA, JFK, TEB, and EWR. New: Automated processes available - try the automation buttons below for one-click operations.',
       timestamp: new Date(Date.now() - 300000),
       commandType: 'query'
     }
@@ -106,6 +106,48 @@ export const NaturalLanguageAssistant: React.FC<NaturalLanguageAssistantProps> =
     const processCommand = (command: string): { message: string; executed: boolean; commandType: 'query' | 'control' | 'analysis' | 'alert' | 'automation' } => {
       const lowerCommand = command.toLowerCase();
       
+      // Enhanced Active Flights Queries
+      if (lowerCommand.includes('active flights') || lowerCommand.includes('show active')) {
+        return {
+          message: `✈️ ACTIVE FLIGHTS REGIONAL STATUS:\n\n📍 NEWARK (EWR): 23 active flights - 12 departures, 11 arrivals\n📍 JFK: 31 active flights - 18 departures, 13 arrivals\n📍 LGA: 19 active flights - 9 departures, 10 arrivals\n📍 TEB: 8 active flights - 5 departures, 3 arrivals\n\nTotal Regional Traffic: 81 flights | Peak congestion: JFK Terminal 4 | Delay factor: 12 minutes average`,
+          executed: true,
+          commandType: 'query'
+        };
+      }
+
+      // Enhanced Inbound Flight Queries by Airport
+      if (lowerCommand.includes('inbound') && (lowerCommand.includes('lga') || lowerCommand.includes('laguardia'))) {
+        return {
+          message: `🛬 LAGUARDIA (LGA) INBOUND FLIGHTS:\n\n• AAL1247 - A320 - ETA 14:25 - Gate B3\n• UAL892 - B737 - ETA 14:32 - Gate A7\n• DL2134 - A321 - ETA 14:45 - Gate C12\n• JBU567 - E190 - ETA 14:52 - Gate B8\n• SWA1823 - B737 - ETA 15:10 - Gate A2\n\nTotal Inbound: 15 flights | Next 2 hours: 8 additional | Runway: 04/22 active`,
+          executed: true,
+          commandType: 'query'
+        };
+      }
+
+      if (lowerCommand.includes('inbound') && lowerCommand.includes('jfk')) {
+        return {
+          message: `🛬 JFK INBOUND FLIGHTS:\n\n• BAW114 - B777 - ETA 14:20 - Gate T4-A1\n• LH441 - A340 - ETA 14:35 - Gate T1-2\n• UAL15 - B767 - ETA 14:42 - Gate T4-B6\n• AAL100 - B777 - ETA 14:55 - Gate T8-12\n• DL1 - A330 - ETA 15:05 - Gate T4-A8\n• EK204 - A380 - ETA 15:20 - Gate T4-A4\n\nTotal Inbound: 28 flights | Next 2 hours: 15 additional | Primary: 04L/22R active`,
+          executed: true,
+          commandType: 'query'
+        };
+      }
+
+      if (lowerCommand.includes('inbound') && (lowerCommand.includes('ewr') || lowerCommand.includes('newark'))) {
+        return {
+          message: `🛬 NEWARK (EWR) INBOUND FLIGHTS:\n\n• UAL1234 - B737 - ETA 14:28 - Gate C74\n• CON567 - E175 - ETA 14:35 - Gate A12\n• UAL2156 - B757 - ETA 14:48 - Gate C92\n• SWA1456 - B737 - ETA 14:55 - Gate A8\n• AAL782 - A319 - ETA 15:12 - Gate A24\n\nTotal Inbound: 19 flights | Next 2 hours: 11 additional | Runway: 04L/22R primary`,
+          executed: true,
+          commandType: 'query'
+        };
+      }
+
+      if (lowerCommand.includes('inbound') && (lowerCommand.includes('teb') || lowerCommand.includes('teterboro'))) {
+        return {
+          message: `🛬 TETERBORO (TEB) INBOUND FLIGHTS:\n\n• N747BA - G650 - ETA 14:40 - Private\n• N125XX - Citation X - ETA 14:55 - Private\n• N456JT - Falcon 7X - ETA 15:15 - Private\n• N789GS - Challenger 350 - ETA 15:25 - Private\n\nTotal Inbound: 8 flights | Next 2 hours: 4 additional | Runway: 06/24 active | Private/Corporate traffic`,
+          executed: true,
+          commandType: 'query'
+        };
+      }
+
       // Automation Commands
       if (lowerCommand.includes('automate') || lowerCommand.includes('autopilot')) {
         if (lowerCommand.includes('pushback') || lowerCommand.includes('taxi')) {
@@ -133,13 +175,13 @@ export const NaturalLanguageAssistant: React.FC<NaturalLanguageAssistantProps> =
       }
       
       // Flight Query Commands
-      if (lowerCommand.includes('show') && (lowerCommand.includes('inbound') || lowerCommand.includes('outbound'))) {
+      if (lowerCommand.includes('show') && (lowerCommand.includes('flights') || lowerCommand.includes('traffic'))) {
         const airport = lowerCommand.includes('jfk') ? 'JFK' : 
                       lowerCommand.includes('lga') ? 'LGA' : 
                       lowerCommand.includes('ewr') ? 'EWR' : 
                       lowerCommand.includes('teb') ? 'TEB' : 'Regional';
         return {
-          message: `✈️ FLIGHT DATA FUSION: ${airport} - 47 inbound flights detected (12 commercial, 8 private, 3 military, 24 civilian). ETA range: 15-180 minutes. Congestion level: MODERATE. Amadeus & DOD data synchronized.`,
+          message: `✈️ FLIGHT DATA FUSION: ${airport} - 47 flights detected (12 commercial, 8 private, 3 military, 24 civilian). Combined inbound/outbound activity. Congestion level: MODERATE. Amadeus & DOD data synchronized. Real-time tracking active.`,
           executed: true,
           commandType: 'query'
         };
@@ -189,7 +231,7 @@ export const NaturalLanguageAssistant: React.FC<NaturalLanguageAssistantProps> =
       
       // Default enhanced response
       return {
-        message: `🤖 AES Command Center ready. I can process flight queries, traffic analysis, ground control commands, emergency protocols, and automated operations. Use automation buttons for one-click processes. Specify aircraft callsign, airport code, or command type for precise execution.`,
+        message: `🤖 AES Command Center ready. I can process:\n• Active flights queries ("show active flights")\n• Airport-specific inbound flights ("show inbound flights for JFK")\n• Traffic analysis and predictions\n• Ground control commands\n• Emergency protocols\n• Automated operations\n\nUse automation buttons for one-click processes. Specify aircraft callsign, airport code (LGA/JFK/EWR/TEB), or command type for precise execution.`,
         executed: false,
         commandType: 'query'
       };
@@ -375,7 +417,7 @@ export const NaturalLanguageAssistant: React.FC<NaturalLanguageAssistantProps> =
                 {message.timestamp.toLocaleTimeString().slice(0, 5)}
               </span>
             </div>
-            <div className="text-sm leading-relaxed">{message.message}</div>
+            <div className="text-sm leading-relaxed whitespace-pre-line">{message.message}</div>
             {message.executed && (
               <div className="flex items-center space-x-2 mt-3 p-2 bg-green-400/10 border border-green-400/20 rounded">
                 <Zap className="w-3 h-3 text-green-400" />
@@ -394,7 +436,7 @@ export const NaturalLanguageAssistant: React.FC<NaturalLanguageAssistantProps> =
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Enter ATC command or try: 'Automate pushback and taxi for UAL234'..."
+            placeholder="Try: 'show active flights' or 'show inbound flights for JFK'..."
             className="w-full bg-gray-900 border border-yellow-400/20 rounded-lg px-4 py-3 text-sm text-yellow-400 font-mono focus:border-yellow-400/50 focus:outline-none focus:ring-2 focus:ring-yellow-400/20"
           />
         </div>
@@ -424,32 +466,32 @@ export const NaturalLanguageAssistant: React.FC<NaturalLanguageAssistantProps> =
       {/* Enhanced Quick Commands */}
       <div className="grid grid-cols-2 gap-2 mb-4">
         <button
-          onClick={() => setInput('Show all inbound flights to JFK')}
+          onClick={() => setInput('show active flights')}
           className="bg-gray-900 hover:bg-gray-800 border border-gray-600 hover:border-blue-400/50 rounded-lg px-3 py-2 text-xs text-left transition-all duration-200"
         >
           <Globe className="w-3 h-3 inline mr-2 text-blue-400" />
-          JFK Inbound Flights
+          Show Active Flights
         </button>
         <button
-          onClick={() => setInput('Analyze Newark congestion patterns')}
+          onClick={() => setInput('show inbound flights for JFK')}
           className="bg-gray-900 hover:bg-gray-800 border border-gray-600 hover:border-purple-400/50 rounded-lg px-3 py-2 text-xs text-left transition-all duration-200"
         >
           <Brain className="w-3 h-3 inline mr-2 text-purple-400" />
-          Newark Analysis
+          JFK Inbound Flights
         </button>
         <button
-          onClick={() => setInput('Clear UAL234 for pushback')}
+          onClick={() => setInput('show inbound flights for LGA')}
           className="bg-gray-900 hover:bg-gray-800 border border-gray-600 hover:border-green-400/50 rounded-lg px-3 py-2 text-xs text-left transition-all duration-200"
         >
           <Zap className="w-3 h-3 inline mr-2 text-green-400" />
-          Pushback Clearance
+          LGA Inbound Flights
         </button>
         <button
-          onClick={() => setInput('Automate all ground operations')}
+          onClick={() => setInput('show inbound flights for EWR')}
           className="bg-gray-900 hover:bg-gray-800 border border-gray-600 hover:border-yellow-400/50 rounded-lg px-3 py-2 text-xs text-left transition-all duration-200"
         >
           <Play className="w-3 h-3 inline mr-2 text-yellow-400" />
-          Full Automation
+          EWR Inbound Flights
         </button>
       </div>
 
