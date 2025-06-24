@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Aircraft, GroundVehicle, Runway, Taxiway } from '../types';
 import { Plane, Truck, AlertTriangle, Navigation, Zap } from 'lucide-react';
 
@@ -9,12 +9,8 @@ interface AirportSurfaceMapProps {
   taxiways: Taxiway[];
 }
 
-export const AirportSurfaceMap: React.FC<AirportSurfaceMapProps> = ({
-  aircraft,
-  vehicles,
-  runways,
-  taxiways
-}) => {
+// Memoized aircraft component for better performance
+const AircraftIcon = memo(({ aircraft }: { aircraft: Aircraft }) => {
   const getAircraftColor = (status: Aircraft['status']) => {
     switch (status) {
       case 'taxiing': return 'text-yellow-400';
@@ -25,6 +21,42 @@ export const AirportSurfaceMap: React.FC<AirportSurfaceMapProps> = ({
     }
   };
 
+  return (
+    <div
+      className="absolute transform -translate-x-1/2 -translate-y-1/2 transition-all duration-1000"
+      style={{
+        left: `${Math.max(20, Math.min(880, aircraft.position.x))}px`,
+        top: `${Math.max(20, Math.min(360, aircraft.position.y))}px`,
+        transform: `translate(-50%, -50%) rotate(${aircraft.heading}deg)`
+      }}
+    >
+      <div className="relative">
+        <Plane className={`w-4 h-4 ${getAircraftColor(aircraft.status)}`} />
+        
+        {/* Automated process indicator */}
+        {aircraft.automatedRoute && (
+          <div className="absolute -top-2 -right-2">
+            <Zap className="w-3 h-3 text-blue-400 animate-pulse" />
+          </div>
+        )}
+        
+        {/* Aircraft callsign */}
+        <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-xs font-mono text-yellow-400 whitespace-nowrap bg-black/80 px-1 rounded">
+          {aircraft.callsign}
+          {aircraft.status === 'pushback' && (
+            <div className="text-blue-400 text-xs">PUSHBACK</div>
+          )}
+          {aircraft.status === 'taxiing' && aircraft.automatedRoute && (
+            <div className="text-green-400 text-xs">AUTO TAXI</div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+});
+
+// Memoized vehicle component for better performance
+const VehicleIcon = memo(({ vehicle }: { vehicle: GroundVehicle }) => {
   const getVehicleColor = (type: GroundVehicle['type']) => {
     switch (type) {
       case 'emergency': return 'text-red-400';
@@ -36,56 +68,97 @@ export const AirportSurfaceMap: React.FC<AirportSurfaceMapProps> = ({
     }
   };
 
-  const renderAutomatedRoute = (aircraft: Aircraft) => {
-    if (!aircraft.automatedRoute || aircraft.automatedRoute.length === 0) return null;
-
-    return (
-      <div className="absolute inset-0 pointer-events-none">
-        {/* Animated route path */}
-        <svg className="w-full h-full" style={{ position: 'absolute', top: 0, left: 0 }}>
-          <defs>
-            <linearGradient id="routeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#60A5FA" stopOpacity="0.8" />
-              <stop offset="50%" stopColor="#34D399" stopOpacity="0.8" />
-              <stop offset="100%" stopColor="#F59E0B" stopOpacity="0.8" />
-            </linearGradient>
-            <filter id="glow">
-              <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-              <feMerge> 
-                <feMergeNode in="coloredBlur"/>
-                <feMergeNode in="SourceGraphic"/>
-              </feMerge>
-            </filter>
-          </defs>
-          <path
-            d={`M ${aircraft.position.x} ${aircraft.position.y} L ${aircraft.position.x + 100} ${aircraft.position.y + 50} L ${aircraft.position.x + 200} ${aircraft.position.y + 25} L ${aircraft.position.x + 300} ${aircraft.position.y + 75}`}
-            stroke="url(#routeGradient)"
-            strokeWidth="3"
-            fill="none"
-            strokeDasharray="10,5"
-            filter="url(#glow)"
-            className="animate-pulse"
-          />
-        </svg>
-
-        {/* Route waypoint indicators */}
-        {aircraft.automatedRoute.map((waypoint, index) => (
-          <div
-            key={`${aircraft.id}-waypoint-${index}`}
-            className="absolute w-4 h-4 rounded-full bg-blue-400/30 border-2 border-blue-400 animate-pulse"
-            style={{
-              left: `${aircraft.position.x + (index + 1) * 80}px`,
-              top: `${aircraft.position.y + 30 + index * 15}px`
-            }}
-          >
-            <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 text-xs font-mono text-blue-400 whitespace-nowrap">
-              {waypoint}
-            </div>
-          </div>
-        ))}
+  return (
+    <div
+      className="absolute transform -translate-x-1/2 -translate-y-1/2"
+      style={{
+        left: `${Math.max(15, Math.min(885, vehicle.position.x))}px`,
+        top: `${Math.max(15, Math.min(365, vehicle.position.y))}px`
+      }}
+    >
+      <div className="relative">
+        <Truck className={`w-3 h-3 ${getVehicleColor(vehicle.type)}`} />
+        
+        {/* Emergency indicator */}
+        {vehicle.status === 'emergency' && (
+          <AlertTriangle className="w-2 h-2 text-red-400 absolute -top-1 -right-1 animate-pulse" />
+        )}
+        
+        {/* Automated task indicator */}
+        {vehicle.automatedTask && (
+          <Navigation className="w-2 h-2 text-blue-400 absolute -top-1 -left-1 animate-pulse" />
+        )}
+        
+        {/* Vehicle ID */}
+        <div className="absolute -bottom-5 left-1/2 transform -translate-x-1/2 text-xs font-mono text-gray-300 whitespace-nowrap">
+          {vehicle.id}
+        </div>
       </div>
-    );
-  };
+    </div>
+  );
+});
+
+// Memoized automated route component
+const AutomatedRoute = memo(({ aircraft }: { aircraft: Aircraft }) => {
+  if (!aircraft.automatedRoute || aircraft.automatedRoute.length === 0) return null;
+
+  return (
+    <div className="absolute inset-0 pointer-events-none">
+      {/* Animated route path */}
+      <svg className="w-full h-full" style={{ position: 'absolute', top: 0, left: 0 }}>
+        <defs>
+          <linearGradient id={`routeGradient-${aircraft.id}`} x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#60A5FA" stopOpacity="0.8" />
+            <stop offset="50%" stopColor="#34D399" stopOpacity="0.8" />
+            <stop offset="100%" stopColor="#F59E0B" stopOpacity="0.8" />
+          </linearGradient>
+          <filter id={`glow-${aircraft.id}`}>
+            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+            <feMerge> 
+              <feMergeNode in="coloredBlur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+        </defs>
+        <path
+          d={`M ${aircraft.position.x} ${aircraft.position.y} L ${aircraft.position.x + 100} ${aircraft.position.y + 50} L ${aircraft.position.x + 200} ${aircraft.position.y + 25} L ${aircraft.position.x + 300} ${aircraft.position.y + 75}`}
+          stroke={`url(#routeGradient-${aircraft.id})`}
+          strokeWidth="3"
+          fill="none"
+          strokeDasharray="10,5"
+          filter={`url(#glow-${aircraft.id})`}
+          className="animate-pulse"
+        />
+      </svg>
+
+      {/* Route waypoint indicators */}
+      {aircraft.automatedRoute.map((waypoint, index) => (
+        <div
+          key={`${aircraft.id}-waypoint-${index}`}
+          className="absolute w-4 h-4 rounded-full bg-blue-400/30 border-2 border-blue-400 animate-pulse"
+          style={{
+            left: `${aircraft.position.x + (index + 1) * 80}px`,
+            top: `${aircraft.position.y + 30 + index * 15}px`
+          }}
+        >
+          <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 text-xs font-mono text-blue-400 whitespace-nowrap">
+            {waypoint}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+});
+
+export const AirportSurfaceMap: React.FC<AirportSurfaceMapProps> = memo(({
+  aircraft,
+  vehicles,
+  runways,
+  taxiways
+}) => {
+  const automatedAircraft = aircraft.filter(ac => ac.automatedRoute);
+  const totalMovements = aircraft.length + vehicles.length;
+  const automatedCount = automatedAircraft.length;
 
   return (
     <div className="bg-black border border-yellow-400/30 rounded-lg p-4 h-full">
@@ -94,18 +167,21 @@ export const AirportSurfaceMap: React.FC<AirportSurfaceMapProps> = ({
         <div className="flex items-center space-x-4 text-xs font-mono">
           <span className="text-green-400">● ACTIVE</span>
           <span className="text-yellow-400">● MONITORING</span>
-          <span className="text-blue-400">● AUTOMATED</span>
-          <span className="text-red-400">● ALERT</span>
+          <span className="text-blue-400">● {automatedCount} AUTOMATED</span>
+          <span className="text-purple-400">● {totalMovements} TRACKED</span>
         </div>
       </div>
 
-      <div className="relative bg-gray-900 border border-yellow-400/20 rounded h-96 overflow-hidden">
+      <div className="relative bg-gray-900 border border-yellow-400/20 rounded h-full overflow-hidden">
         {/* Newark Airport Layout */}
         <div className="absolute inset-4">
           {/* Primary runway 04L/22R */}
           <div className="absolute top-1/2 left-8 right-8 h-8 bg-gray-700 border border-yellow-400/50 transform -translate-y-1/2">
             <div className="absolute left-2 top-1/2 transform -translate-y-1/2 text-yellow-400 text-xs font-mono">04L</div>
             <div className="absolute right-2 top-1/2 transform -translate-y-1/2 text-yellow-400 text-xs font-mono">22R</div>
+            <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 text-yellow-400 text-xs font-mono bg-gray-700 px-1">
+              PRIMARY
+            </div>
           </div>
           
           {/* Secondary runway 04R/22L */}
@@ -123,20 +199,23 @@ export const AirportSurfaceMap: React.FC<AirportSurfaceMapProps> = ({
           {/* Newark Terminal Buildings */}
           <div className="absolute top-4 left-4 w-16 h-12 bg-gray-600 border border-gray-500 rounded">
             <div className="text-xs text-yellow-400 text-center mt-2">Terminal A</div>
+            <div className="text-xs text-green-400 text-center">12 Gates</div>
           </div>
           <div className="absolute top-4 left-24 w-16 h-12 bg-gray-600 border border-gray-500 rounded">
             <div className="text-xs text-yellow-400 text-center mt-2">Terminal B</div>
+            <div className="text-xs text-green-400 text-center">24 Gates</div>
           </div>
           <div className="absolute top-4 left-44 w-16 h-12 bg-gray-600 border border-gray-500 rounded">
             <div className="text-xs text-yellow-400 text-center mt-2">Terminal C</div>
+            <div className="text-xs text-green-400 text-center">41 Gates</div>
           </div>
 
-          {/* Taxiway network */}
+          {/* Enhanced taxiway network */}
           {taxiways.map((taxiway, index) => (
             <div
               key={taxiway.id}
-              className={`absolute w-4 h-4 rounded-full border-2 ${
-                taxiway.status === 'occupied' ? 'border-red-400 bg-red-400/20' : 
+              className={`absolute w-4 h-4 rounded-full border-2 transition-all duration-500 ${
+                taxiway.status === 'occupied' ? 'border-red-400 bg-red-400/20 animate-pulse' : 
                 taxiway.status === 'closed' ? 'border-gray-600 bg-gray-600/20' :
                 'border-green-400 bg-green-400/20'
               }`}
@@ -148,100 +227,49 @@ export const AirportSurfaceMap: React.FC<AirportSurfaceMapProps> = ({
               <span className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 text-xs font-mono text-yellow-400">
                 {taxiway.name.charAt(0)}
               </span>
+              {taxiway.congestionLevel === 'high' && (
+                <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-400 rounded-full animate-pulse" />
+              )}
             </div>
           ))}
 
           {/* Render automated routes first (behind aircraft) */}
-          {aircraft.map((aircraft) => renderAutomatedRoute(aircraft))}
+          {aircraft.map((aircraft) => (
+            <AutomatedRoute key={`route-${aircraft.id}`} aircraft={aircraft} />
+          ))}
 
           {/* Aircraft positions */}
           {aircraft.map((aircraft) => (
-            <div
-              key={aircraft.id}
-              className="absolute transform -translate-x-1/2 -translate-y-1/2 transition-all duration-2000"
-              style={{
-                left: `${Math.max(20, Math.min(880, aircraft.position.x))}px`,
-                top: `${Math.max(20, Math.min(360, aircraft.position.y))}px`,
-                transform: `translate(-50%, -50%) rotate(${aircraft.heading}deg)`
-              }}
-            >
-              <div className="relative">
-                <Plane className={`w-4 h-4 ${getAircraftColor(aircraft.status)}`} />
-                
-                {/* Automated process indicator */}
-                {aircraft.automatedRoute && (
-                  <div className="absolute -top-2 -right-2">
-                    <Zap className="w-3 h-3 text-blue-400 animate-pulse" />
-                  </div>
-                )}
-                
-                {/* Aircraft callsign */}
-                <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-xs font-mono text-yellow-400 whitespace-nowrap bg-black/80 px-1 rounded">
-                  {aircraft.callsign}
-                  {aircraft.status === 'pushback' && (
-                    <div className="text-blue-400 text-xs">PUSHBACK</div>
-                  )}
-                  {aircraft.status === 'taxiing' && aircraft.automatedRoute && (
-                    <div className="text-green-400 text-xs">AUTO TAXI</div>
-                  )}
-                </div>
-              </div>
-            </div>
+            <AircraftIcon key={aircraft.id} aircraft={aircraft} />
           ))}
 
           {/* Ground vehicles */}
           {vehicles.map((vehicle) => (
-            <div
-              key={vehicle.id}
-              className="absolute transform -translate-x-1/2 -translate-y-1/2"
-              style={{
-                left: `${Math.max(15, Math.min(885, vehicle.position.x))}px`,
-                top: `${Math.max(15, Math.min(365, vehicle.position.y))}px`
-              }}
-            >
-              <div className="relative">
-                <Truck className={`w-3 h-3 ${getVehicleColor(vehicle.type)}`} />
-                
-                {/* Emergency indicator */}
-                {vehicle.status === 'emergency' && (
-                  <AlertTriangle className="w-2 h-2 text-red-400 absolute -top-1 -right-1 animate-pulse" />
-                )}
-                
-                {/* Automated task indicator */}
-                {vehicle.automatedTask && (
-                  <Navigation className="w-2 h-2 text-blue-400 absolute -top-1 -left-1 animate-pulse" />
-                )}
-                
-                {/* Vehicle ID */}
-                <div className="absolute -bottom-5 left-1/2 transform -translate-x-1/2 text-xs font-mono text-gray-300 whitespace-nowrap">
-                  {vehicle.id}
-                </div>
-              </div>
-            </div>
+            <VehicleIcon key={vehicle.id} vehicle={vehicle} />
           ))}
         </div>
       </div>
 
-      {/* Enhanced Legend */}
+      {/* Enhanced Legend with stress test info */}
       <div className="mt-4 grid grid-cols-3 gap-4 text-xs font-mono">
         <div>
           <h3 className="text-yellow-400 mb-2">AIRCRAFT STATUS</h3>
           <div className="space-y-1">
             <div className="flex items-center space-x-2">
               <Plane className="w-3 h-3 text-yellow-400" />
-              <span className="text-gray-300">Taxiing</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Plane className="w-3 h-3 text-orange-400" />
-              <span className="text-gray-300">Holding</span>
+              <span className="text-gray-300">Active: {aircraft.filter(a => a.status === 'taxiing').length}</span>
             </div>
             <div className="flex items-center space-x-2">
               <Plane className="w-3 h-3 text-blue-400" />
-              <span className="text-gray-300">Pushback</span>
+              <span className="text-gray-300">Pushback: {aircraft.filter(a => a.status === 'pushback').length}</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Plane className="w-3 h-3 text-orange-400" />
+              <span className="text-gray-300">Holding: {aircraft.filter(a => a.status === 'holding').length}</span>
             </div>
             <div className="flex items-center space-x-2">
               <Plane className="w-3 h-3 text-gray-400" />
-              <span className="text-gray-300">Parked</span>
+              <span className="text-gray-300">Parked: {aircraft.filter(a => a.status === 'parked').length}</span>
             </div>
           </div>
         </div>
@@ -251,51 +279,61 @@ export const AirportSurfaceMap: React.FC<AirportSurfaceMapProps> = ({
           <div className="space-y-1">
             <div className="flex items-center space-x-2">
               <Truck className="w-3 h-3 text-red-400" />
-              <span className="text-gray-300">Emergency</span>
+              <span className="text-gray-300">Emergency: {vehicles.filter(v => v.type === 'emergency').length}</span>
             </div>
             <div className="flex items-center space-x-2">
               <Truck className="w-3 h-3 text-blue-400" />
-              <span className="text-gray-300">Pushback</span>
+              <span className="text-gray-300">Pushback: {vehicles.filter(v => v.type === 'pushback').length}</span>
             </div>
             <div className="flex items-center space-x-2">
               <Truck className="w-3 h-3 text-green-400" />
-              <span className="text-gray-300">Follow-me</span>
+              <span className="text-gray-300">Follow-me: {vehicles.filter(v => v.type === 'follow-me').length}</span>
             </div>
             <div className="flex items-center space-x-2">
               <Truck className="w-3 h-3 text-yellow-400" />
-              <span className="text-gray-300">Fuel</span>
+              <span className="text-gray-300">Active: {vehicles.filter(v => v.status === 'active').length}</span>
             </div>
           </div>
         </div>
         
         <div>
-          <h3 className="text-yellow-400 mb-2">AUTOMATION</h3>
+          <h3 className="text-yellow-400 mb-2">AUTOMATION STATUS</h3>
           <div className="space-y-1">
             <div className="flex items-center space-x-2">
               <Zap className="w-3 h-3 text-blue-400" />
-              <span className="text-gray-300">Automated Process</span>
+              <span className="text-gray-300">Automated: {automatedCount}</span>
             </div>
             <div className="flex items-center space-x-2">
               <Navigation className="w-3 h-3 text-green-400" />
-              <span className="text-gray-300">AI Route Active</span>
+              <span className="text-gray-300">AI Routes: {automatedAircraft.length}</span>
             </div>
             <div className="flex items-center space-x-2">
               <div className="w-3 h-1 bg-gradient-to-r from-blue-400 to-green-400 rounded"></div>
-              <span className="text-gray-300">Automated Path</span>
+              <span className="text-gray-300">Efficiency: 67%</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 bg-purple-400 rounded-full animate-pulse"></div>
+              <span className="text-gray-300">Load: {totalMovements}</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Newark-specific AI stats */}
-      <div className="mt-3 bg-blue-400/10 border border-blue-400/20 rounded p-2">
-        <div className="text-xs text-blue-400 mb-1">NEWARK (EWR) AI OPTIMIZATION:</div>
-        <div className="grid grid-cols-3 gap-2 text-xs text-gray-300">
-          <div>• 31% delay reduction</div>
+      {/* Enhanced Newark-specific AI stats */}
+      <div className="mt-3 bg-gradient-to-r from-blue-400/10 to-purple-400/10 border border-blue-400/20 rounded p-2">
+        <div className="text-xs text-blue-400 mb-1">NEWARK (EWR) PERFORMANCE METRICS:</div>
+        <div className="grid grid-cols-4 gap-2 text-xs text-gray-300">
+          <div>• {((100 - totalMovements * 2) + 31).toFixed(0)}% delay reduction</div>
           <div>• 67% conflict prevention</div>
-          <div>• 89 aircraft tracked</div>
+          <div>• {totalMovements} entities tracked</div>
+          <div>• {automatedCount} automated processes</div>
         </div>
       </div>
     </div>
   );
-};
+});
+
+AirportSurfaceMap.displayName = 'AirportSurfaceMap';
+AircraftIcon.displayName = 'AircraftIcon';
+VehicleIcon.displayName = 'VehicleIcon';
+AutomatedRoute.displayName = 'AutomatedRoute';
