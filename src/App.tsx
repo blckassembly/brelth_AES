@@ -19,12 +19,6 @@ type ActiveView = 'surface-map' | 'runway-status' | 'gate-management' | 'vehicle
 function App() {
   const [activeView, setActiveView] = useState<ActiveView>('surface-map');
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [systemHealth, setSystemHealth] = useState({
-    cpu: 0,
-    memory: 0,
-    network: 0,
-    automationLoad: 0
-  });
 
   const {
     aircraft,
@@ -45,20 +39,6 @@ function App() {
 
     return () => clearInterval(clockInterval);
   }, []);
-
-  // System health monitoring for stress testing
-  useEffect(() => {
-    const healthInterval = setInterval(() => {
-      setSystemHealth({
-        cpu: Math.min(95, 15 + automatedProcesses.length * 8 + Math.random() * 10),
-        memory: Math.min(90, 25 + aircraft.length * 2 + Math.random() * 15),
-        network: Math.min(99, 85 + Math.random() * 10),
-        automationLoad: automatedProcesses.filter(p => p.status === 'in-progress').length * 25
-      });
-    }, 2000);
-
-    return () => clearInterval(healthInterval);
-  }, [automatedProcesses, aircraft.length]);
 
   const handleAutomationUpdate = (processes: AutomatedProcess[]) => {
     // Enhanced automation update handling with performance metrics
@@ -176,27 +156,8 @@ function App() {
 
   const getActiveItemClass = (itemId: string) => {
     return activeView === itemId
-      ? 'w-full text-left p-3 rounded bg-yellow-400/20 border border-yellow-400/50 transition-colors text-sm font-bold text-yellow-400'
-      : 'w-full text-left p-3 rounded hover:bg-yellow-400/10 transition-colors text-sm text-gray-300 hover:text-yellow-400';
-  };
-
-  const getHealthColor = (value: number) => {
-    if (value >= 90) return 'text-red-400';
-    if (value >= 70) return 'text-yellow-400';
-    return 'text-green-400';
-  };
-
-  const getHealthBar = (value: number) => {
-    const clampedValue = Math.max(0, Math.min(100, value));
-    const color = value >= 90 ? 'bg-red-400' : value >= 70 ? 'bg-yellow-400' : 'bg-green-400';
-    return (
-      <div className="w-full bg-gray-700 rounded-full h-1">
-        <div 
-          className={`${color} h-1 rounded-full transition-all duration-300`}
-          style={{ width: `${clampedValue}%` }}
-        />
-      </div>
-    );
+      ? 'w-full text-left p-6 rounded-lg bg-yellow-400/20 border border-yellow-400/50 transition-all duration-200 text-lg font-bold text-yellow-400 hover:bg-yellow-400/30'
+      : 'w-full text-left p-6 rounded-lg hover:bg-yellow-400/10 transition-all duration-200 text-lg text-gray-300 hover:text-yellow-400 hover:border-yellow-400/30 border border-transparent';
   };
 
   const activeAutomatedProcesses = automatedProcesses.filter(p => p.status === 'in-progress');
@@ -206,105 +167,34 @@ function App() {
   return (
     <div className="h-screen flex bg-black text-yellow-400 font-mono">
       {/* Left Sidebar Navigation */}
-      <div className="w-80 bg-black border-r border-yellow-400/30 p-4 flex flex-col">
-        <div className="flex items-center space-x-3 mb-6">
-          <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+      <div className="w-96 bg-black border-r border-yellow-400/30 p-6 flex flex-col">
+        <div className="flex items-center space-x-3 mb-8">
+          <div className="w-4 h-4 bg-green-400 rounded-full animate-pulse"></div>
           <div>
-            <h1 className="text-2xl font-bold text-yellow-400">AES</h1>
-            <h2 className="text-lg font-bold text-yellow-400">ATC Ground Operations</h2>
+            <h1 className="text-3xl font-bold text-yellow-400">AES</h1>
+            <h2 className="text-xl font-bold text-yellow-400">ATC Ground Operations</h2>
           </div>
         </div>
         
-        <div className="text-xs text-gray-400 mb-6">
+        <div className="text-sm text-gray-400 mb-8">
           v2.1.0 | SECURE | FAA NEXTGEN COMPLIANT
-        </div>
-
-        {/* Enhanced System Status with Health Monitoring */}
-        <div className="mb-6">
-          <div className="text-xs text-gray-500 uppercase tracking-wider mb-3">System Status</div>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between p-2 rounded bg-green-400/10 border border-green-400/20">
-              <div className="flex items-center space-x-2">
-                <span className="text-green-400">●</span>
-                <span className="text-sm text-green-400">ACTIVE</span>
-              </div>
-              <span className="text-xs text-gray-400">{totalAircraft}A/{totalVehicles}V</span>
-            </div>
-            
-            <div className="flex items-center justify-between p-2 rounded bg-blue-400/10 border border-blue-400/20">
-              <div className="flex items-center space-x-2">
-                <span className="text-blue-400">●</span>
-                <span className="text-sm text-blue-400">AMADEUS API</span>
-              </div>
-              <span className="text-xs text-gray-400">{systemHealth.network.toFixed(0)}%</span>
-            </div>
-            
-            <div className="flex items-center justify-between p-2 rounded bg-purple-400/10 border border-purple-400/20">
-              <div className="flex items-center space-x-2">
-                <span className="text-purple-400">●</span>
-                <span className="text-sm text-purple-400">DOD LINK</span>
-              </div>
-              <span className="text-xs text-gray-400">Encrypted</span>
-            </div>
-
-            {/* Automated Processes Status */}
-            {activeAutomatedProcesses.length > 0 && (
-              <div className="flex items-center justify-between p-2 rounded bg-yellow-400/10 border border-yellow-400/20">
-                <div className="flex items-center space-x-2">
-                  <span className="text-yellow-400 animate-pulse">⚙</span>
-                  <span className="text-sm text-yellow-400">AUTOMATION</span>
-                </div>
-                <span className="text-xs text-gray-400">{activeAutomatedProcesses.length} Active</span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* System Health Monitor */}
-        <div className="mb-6">
-          <div className="text-xs text-gray-500 uppercase tracking-wider mb-3">System Health</div>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-400">CPU</span>
-              <span className={`text-xs font-mono ${getHealthColor(systemHealth.cpu)}`}>
-                {systemHealth.cpu.toFixed(0)}%
-              </span>
-            </div>
-            {getHealthBar(systemHealth.cpu)}
-            
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-400">Memory</span>
-              <span className={`text-xs font-mono ${getHealthColor(systemHealth.memory)}`}>
-                {systemHealth.memory.toFixed(0)}%
-              </span>
-            </div>
-            {getHealthBar(systemHealth.memory)}
-            
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-400">Network</span>
-              <span className={`text-xs font-mono ${getHealthColor(100 - systemHealth.network)}`}>
-                {systemHealth.network.toFixed(0)}%
-              </span>
-            </div>
-            {getHealthBar(systemHealth.network)}
-          </div>
         </div>
 
         {/* Main Navigation */}
         <div className="flex-1 overflow-auto">
-          <div className="text-xs text-gray-500 uppercase tracking-wider mb-3">Command & Control</div>
-          <div className="space-y-2">
+          <div className="text-sm text-gray-500 uppercase tracking-wider mb-6">Command & Control</div>
+          <div className="space-y-4">
             {navigationItems.map((item) => (
               <button
                 key={item.id}
                 onClick={() => setActiveView(item.id as ActiveView)}
                 className={getActiveItemClass(item.id)}
               >
-                <div className="flex items-center space-x-3">
-                  <span className="text-lg">{item.icon}</span>
-                  <span>{item.label}</span>
+                <div className="flex items-center space-x-4">
+                  <span className="text-2xl">{item.icon}</span>
+                  <span className="font-semibold">{item.label}</span>
                   {item.id === 'ai-assistant' && activeAutomatedProcesses.length > 0 && (
-                    <span className="ml-auto w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></span>
+                    <span className="ml-auto w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></span>
                   )}
                 </div>
               </button>
@@ -313,29 +203,29 @@ function App() {
         </div>
 
         {/* Security Compliance */}
-        <div className="mt-6">
-          <div className="text-xs text-gray-500 uppercase tracking-wider mb-3">Security</div>
-          <div className="space-y-1">
-            <div className="flex items-center space-x-2 p-2 text-xs">
-              <span className="text-green-400">🔒</span>
+        <div className="mt-8">
+          <div className="text-sm text-gray-500 uppercase tracking-wider mb-4">Security</div>
+          <div className="space-y-2">
+            <div className="flex items-center space-x-3 p-3 text-sm">
+              <span className="text-green-400 text-lg">🔒</span>
               <span className="text-gray-400">FIPS 140-2</span>
             </div>
-            <div className="flex items-center space-x-2 p-2 text-xs">
-              <span className="text-green-400">🛡️</span>
+            <div className="flex items-center space-x-3 p-3 text-sm">
+              <span className="text-green-400 text-lg">🛡️</span>
               <span className="text-gray-400">NIST Compliant</span>
             </div>
-            <div className="flex items-center space-x-2 p-2 text-xs">
-              <span className="text-green-400">🔐</span>
+            <div className="flex items-center space-x-3 p-3 text-sm">
+              <span className="text-green-400 text-lg">🔐</span>
               <span className="text-gray-400">DoD Certified</span>
             </div>
           </div>
         </div>
 
         {/* Real-time UTC Clock */}
-        <div className="mt-6 pt-4 border-t border-yellow-400/20">
-          <div className="text-xs text-gray-400">
-            <div className="font-bold text-yellow-400">UTC TIME</div>
-            <div className="text-lg font-mono text-yellow-400">
+        <div className="mt-8 pt-6 border-t border-yellow-400/20">
+          <div className="text-sm text-gray-400">
+            <div className="font-bold text-yellow-400 text-lg">UTC TIME</div>
+            <div className="text-2xl font-mono text-yellow-400 mt-2">
               {currentTime.toLocaleTimeString('en-US', { 
                 timeZone: 'UTC',
                 hour12: false,
@@ -344,7 +234,7 @@ function App() {
                 second: '2-digit'
               })} UTC
             </div>
-            <div className="text-xs text-gray-500">
+            <div className="text-sm text-gray-500 mt-1">
               {currentTime.toLocaleDateString('en-US', { 
                 timeZone: 'UTC',
                 month: 'short',
@@ -357,7 +247,7 @@ function App() {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 h-full p-4">
+      <div className="flex-1 h-full p-6">
         {renderMainContent()}
       </div>
     </div>
