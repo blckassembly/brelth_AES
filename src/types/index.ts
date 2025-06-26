@@ -4,12 +4,13 @@ export interface Aircraft {
   type: string;
   position: { x: number; y: number };
   heading: number;
-  status: 'taxiing' | 'holding' | 'pushback' | 'parked';
+  status: 'taxiing' | 'holding' | 'pushback' | 'parked' | 'grounded';
   gate?: string;
   runway?: string;
   route?: string[];
   lastUpdate: Date;
   automatedRoute?: string[]; // For showing automated taxi routes
+  groundedReason?: string; // Reason if aircraft is grounded by AI
 }
 
 export interface GroundVehicle {

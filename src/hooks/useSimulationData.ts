@@ -29,6 +29,18 @@ export const useSimulationData = () => {
   const [weather, setWeather] = useState<SimulatedWeatherData | null>(null);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [simulationState, setSimulationState] = useState<SimulationState | null>(null);
+  const [isAIGroundingActive, setIsAIGroundingActive] = useState<boolean>(false);
+
+  // AI Grounding control functions
+  const enableAIGrounding = useCallback(() => {
+    setIsAIGroundingActive(true);
+    console.log('AI Grounding System Activated');
+  }, []);
+
+  const disableAIGrounding = useCallback(() => {
+    setIsAIGroundingActive(false);
+    console.log('AI Grounding System Deactivated');
+  }, []);
 
   // Initialize simulation components
   const initializeSimulation = useCallback(() => {
@@ -55,6 +67,11 @@ export const useSimulationData = () => {
 
       simulationManager.on('tick', (data: any) => {
         setSimulationState(simulationManager!.getState());
+        
+        // Trigger AI grounding check if active
+        if (isAIGroundingActive && aircraft.length > 0 && weather) {
+          simulationManager!.triggerAIGroundingCheck(aircraft, weather);
+        }
       });
 
       simulationManager.on('eventProcessed', (data: any) => {
@@ -93,10 +110,15 @@ export const useSimulationData = () => {
       simulationManager.on('emergencyScenario', (event: any) => {
         handleEmergencyScenario(event);
       });
+
+      // Add flight grounded event handler
+      simulationManager.on('flightGrounded', (event: any) => {
+        handleFlightGrounded(event);
+      });
     }
 
     return simulationManager;
-  }, [aircraft, vehicles, runways, taxiways, gates, weather, alerts]);
+  }, [aircraft, vehicles, runways, taxiways, gates, weather, alerts, isAIGroundingActive]);
 
   // Load initial scenario state
   const loadScenarioState = useCallback((scenario: any) => {
@@ -145,6 +167,15 @@ export const useSimulationData = () => {
     setVehicles(updatedState.vehicles);
     setAlerts(updatedState.alerts);
   }, [aircraft, vehicles, alerts]);
+
+  // New handler for flight grounded events
+  const handleFlightGrounded = useCallback((event: any) => {
+    const updatedState = eventInjector!.injectEvent(event, { 
+      aircraft, alerts 
+    });
+    setAircraft(updatedState.aircraft);
+    setAlerts(updatedState.alerts);
+  }, [aircraft, alerts]);
 
   // Control functions
   const startSimulation = useCallback(() => {
@@ -241,6 +272,11 @@ export const useSimulationData = () => {
     alerts,
     simulationState,
     
+    // AI Grounding
+    isAIGroundingActive,
+    enableAIGrounding,
+    disableAIGrounding,
+    
     // Control functions
     startSimulation,
     pauseSimulation,
@@ -268,6 +304,7 @@ const generateSimulatedAircraft = (baseAircraft: any[]): SimulatedAircraft[] => 
     position: ac.position || { x: 100 + index * 50, y: 100 + index * 30 },
     heading: ac.heading || Math.floor(Math.random() * 360),
     status: ac.status || 'parked',
+    groundedReason: ac.groundedReason,
     lastUpdate: new Date(),
     simulationData: {
       scheduledEvents: [],

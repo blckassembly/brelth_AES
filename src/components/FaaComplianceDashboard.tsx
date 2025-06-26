@@ -1,15 +1,19 @@
 import React, { useState } from 'react';
-import { Shield, Activity, FileText, AlertTriangle, CheckCircle, Clock, Zap } from 'lucide-react';
+import { Shield, Activity, FileText, AlertTriangle, CheckCircle, Clock, Zap, Brain, Plane, Radio, Users } from 'lucide-react';
 import { SimulationControlPanel } from './SimulationControlPanel';
 import { useSimulationData } from '../hooks/useSimulationData';
 
 export const FaaComplianceDashboard: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'control' | 'logs' | 'compliance' | 'performance'>('control');
+  const [activeTab, setActiveTab] = useState<'control' | 'logs' | 'compliance' | 'performance' | 'ai-grounding'>('control');
   
   const {
     simulationState,
     getSimulationLogs,
-    getComplianceStatus
+    getComplianceStatus,
+    aircraft,
+    isAIGroundingActive,
+    enableAIGrounding,
+    disableAIGrounding
   } = useSimulationData();
 
   const complianceStatus = getComplianceStatus();
@@ -22,6 +26,188 @@ export const FaaComplianceDashboard: React.FC = () => {
       case 'violation': return 'text-red-400 border-red-400/30 bg-red-400/10';
       default: return 'text-gray-400 border-gray-400/30 bg-gray-400/10';
     }
+  };
+
+  const renderAIGroundingContent = () => {
+    const groundedFlights = aircraft.filter(ac => ac.status === 'grounded' && ac.groundedReason);
+    
+    return (
+      <div className="bg-black border border-yellow-400/30 rounded-lg p-4 h-full">
+        <h3 className="text-yellow-400 font-mono text-lg font-bold mb-4">AI GROUNDING SYSTEM</h3>
+        
+        {/* AI System Status */}
+        <div className="mb-6 bg-gray-900 border border-yellow-400/20 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-3">
+              <Brain className="w-6 h-6 text-purple-400" />
+              <h4 className="text-purple-400 font-mono text-lg font-bold">AI FLIGHT GROUNDING STATUS</h4>
+            </div>
+            <div className="flex items-center space-x-3">
+              <div className={`w-3 h-3 rounded-full ${
+                isAIGroundingActive ? 'bg-green-400 animate-pulse' : 'bg-red-400'
+              }`}></div>
+              <span className={`font-mono text-sm ${
+                isAIGroundingActive ? 'text-green-400' : 'text-red-400'
+              }`}>
+                {isAIGroundingActive ? 'ACTIVE' : 'INACTIVE'}
+              </span>
+            </div>
+          </div>
+
+          {/* Control Buttons */}
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <button
+              onClick={enableAIGrounding}
+              disabled={isAIGroundingActive}
+              className={`
+                p-3 rounded-lg border font-mono text-sm transition-all duration-200
+                ${isAIGroundingActive 
+                  ? 'border-gray-600 bg-gray-800 text-gray-500 cursor-not-allowed' 
+                  : 'border-green-400/50 bg-green-400/10 text-green-400 hover:bg-green-400/20'
+                }
+              `}
+            >
+              <div className="flex items-center justify-center space-x-2">
+                <Zap className="w-4 h-4" />
+                <span>ACTIVATE AI GROUNDING</span>
+              </div>
+            </button>
+            
+            <button
+              onClick={disableAIGrounding}
+              disabled={!isAIGroundingActive}
+              className={`
+                p-3 rounded-lg border font-mono text-sm transition-all duration-200
+                ${!isAIGroundingActive 
+                  ? 'border-gray-600 bg-gray-800 text-gray-500 cursor-not-allowed' 
+                  : 'border-red-400/50 bg-red-400/10 text-red-400 hover:bg-red-400/20'
+                }
+              `}
+            >
+              <div className="flex items-center justify-center space-x-2">
+                <Shield className="w-4 h-4" />
+                <span>DEACTIVATE AI GROUNDING</span>
+              </div>
+            </button>
+          </div>
+
+          {/* AI Capabilities */}
+          <div className="grid grid-cols-2 gap-4 text-xs">
+            <div className="bg-blue-400/10 border border-blue-400/20 rounded p-3">
+              <div className="flex items-center space-x-2 mb-2">
+                <AlertTriangle className="w-4 h-4 text-blue-400" />
+                <span className="text-blue-400 font-mono font-bold">WEATHER ANALYSIS</span>
+              </div>
+              <div className="text-gray-300">
+                • Real-time weather monitoring<br/>
+                • Severe weather detection<br/>
+                • Visibility & wind thresholds
+              </div>
+            </div>
+            
+            <div className="bg-purple-400/10 border border-purple-400/20 rounded p-3">
+              <div className="flex items-center space-x-2 mb-2">
+                <Activity className="w-4 h-4 text-purple-400" />
+                <span className="text-purple-400 font-mono font-bold">MAINTENANCE ALERTS</span>
+              </div>
+              <div className="text-gray-300">
+                • Predictive maintenance<br/>
+                • Component monitoring<br/>
+                • Safety compliance checks
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Secure Communications */}
+        <div className="mb-6 bg-gradient-to-r from-green-400/10 to-blue-400/10 border border-green-400/20 rounded-lg p-4">
+          <div className="flex items-center space-x-3 mb-3">
+            <Radio className="w-5 h-5 text-green-400" />
+            <h4 className="text-green-400 font-mono text-sm font-bold">SECURE ATC-PILOT COMMUNICATIONS</h4>
+            <div className="ml-auto flex items-center space-x-2">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              <span className="text-green-400 text-xs font-mono">ACTIVE</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-3 text-xs">
+            <div className="text-center">
+              <div className="text-green-400 font-bold">256-bit</div>
+              <div className="text-gray-400">Encryption</div>
+            </div>
+            <div className="text-center">
+              <div className="text-blue-400 font-bold">FIPS 140-2</div>
+              <div className="text-gray-400">Compliant</div>
+            </div>
+            <div className="text-center">
+              <div className="text-purple-400 font-bold">Multi-Freq</div>
+              <div className="text-gray-400">Backup</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Grounded Flights */}
+        <div className="bg-gray-900 border border-yellow-400/20 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-yellow-400 font-mono text-sm font-bold">GROUNDED FLIGHTS</h4>
+            <div className="flex items-center space-x-2">
+              <Plane className="w-4 h-4 text-red-400" />
+              <span className="text-red-400 font-mono text-sm">{groundedFlights.length} GROUNDED</span>
+            </div>
+          </div>
+          
+          {groundedFlights.length > 0 ? (
+            <div className="space-y-2 max-h-64 overflow-auto">
+              {groundedFlights.map((aircraft) => (
+                <div key={aircraft.id} className="bg-red-400/10 border border-red-400/20 rounded p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-red-400 font-mono font-bold">{aircraft.callsign}</span>
+                    <span className="text-gray-400 text-xs">{aircraft.type}</span>
+                  </div>
+                  <div className="text-xs text-gray-300">
+                    <div className="flex items-center space-x-2 mb-1">
+                      <AlertTriangle className="w-3 h-3 text-red-400" />
+                      <span className="text-red-400 font-mono">GROUNDED:</span>
+                    </div>
+                    <div className="text-gray-300 ml-5">{aircraft.groundedReason}</div>
+                  </div>
+                  <div className="text-xs text-gray-500 mt-2">
+                    Grounded: {aircraft.lastUpdate.toLocaleTimeString()}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <CheckCircle className="w-8 h-8 text-green-400 mx-auto mb-2" />
+              <div className="text-green-400 font-mono text-sm">ALL FLIGHTS OPERATIONAL</div>
+              <div className="text-gray-400 text-xs mt-1">No aircraft currently grounded by AI system</div>
+            </div>
+          )}
+        </div>
+
+        {/* FAA Authority Integration */}
+        <div className="mt-4 bg-gradient-to-r from-yellow-400/10 to-orange-400/10 border border-yellow-400/20 rounded p-3">
+          <div className="flex items-center space-x-2 mb-2">
+            <Users className="w-4 h-4 text-yellow-400" />
+            <span className="text-yellow-400 font-mono text-xs font-bold">FAA AUTHORITY INTEGRATION</span>
+          </div>
+          <div className="grid grid-cols-2 gap-4 text-xs">
+            <div>
+              <div className="text-gray-400">Automated Notifications:</div>
+              <div className="text-green-400">• ATC Controllers</div>
+              <div className="text-green-400">• Flight Operations</div>
+              <div className="text-green-400">• Maintenance Teams</div>
+            </div>
+            <div>
+              <div className="text-gray-400">Regulatory Compliance:</div>
+              <div className="text-blue-400">• CFR Part 121</div>
+              <div className="text-blue-400">• DO-178C Certified</div>
+              <div className="text-blue-400">• NextGen Compatible</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   const renderTabContent = () => {
@@ -229,6 +415,9 @@ export const FaaComplianceDashboard: React.FC = () => {
             </div>
           </div>
         );
+
+      case 'ai-grounding':
+        return renderAIGroundingContent();
         
       default:
         return null;
@@ -271,7 +460,8 @@ export const FaaComplianceDashboard: React.FC = () => {
             { id: 'control', label: 'SIMULATION CONTROL', icon: Activity },
             { id: 'logs', label: 'EVENT LOGS', icon: FileText },
             { id: 'compliance', label: 'COMPLIANCE', icon: CheckCircle },
-            { id: 'performance', label: 'PERFORMANCE', icon: Zap }
+            { id: 'performance', label: 'PERFORMANCE', icon: Zap },
+            { id: 'ai-grounding', label: 'AI GROUNDING', icon: Brain }
           ].map(tab => {
             const Icon = tab.icon;
             return (
@@ -288,6 +478,9 @@ export const FaaComplianceDashboard: React.FC = () => {
               >
                 <Icon className="w-4 h-4" />
                 <span>{tab.label}</span>
+                {tab.id === 'ai-grounding' && isAIGroundingActive && (
+                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                )}
               </button>
             );
           })}
@@ -301,7 +494,7 @@ export const FaaComplianceDashboard: React.FC = () => {
 
       {/* Footer - Compliance Summary */}
       <div className="border-t border-yellow-400/30 p-4">
-        <div className="grid grid-cols-6 gap-4 text-center text-sm">
+        <div className="grid grid-cols-7 gap-4 text-center text-sm">
           <div className="flex flex-col">
             <span className="text-green-400 font-bold text-lg">
               {complianceStatus?.overallStatus === 'compliant' ? '✓' : 
@@ -329,6 +522,12 @@ export const FaaComplianceDashboard: React.FC = () => {
           <div className="flex flex-col">
             <span className="text-green-400 font-bold text-lg">DO-326A</span>
             <span className="text-gray-400 text-xs">Black Box</span>
+          </div>
+          <div className="flex flex-col">
+            <span className={`font-bold text-lg ${isAIGroundingActive ? 'text-green-400' : 'text-red-400'}`}>
+              {isAIGroundingActive ? 'ACTIVE' : 'INACTIVE'}
+            </span>
+            <span className="text-gray-400 text-xs">AI Grounding</span>
           </div>
         </div>
       </div>

@@ -40,7 +40,8 @@ export enum SimulationEventType {
   COMMUNICATION_FAILURE = 'communicationFailure',
   EMERGENCY_SCENARIO = 'emergencyScenario',
   SYSTEM_FAULT = 'systemFault',
-  COMPLIANCE_CHECK = 'complianceCheck'
+  COMPLIANCE_CHECK = 'complianceCheck',
+  FLIGHT_GROUNDED = 'flightGrounded'
 }
 
 export interface ComplianceTestCase {
@@ -111,12 +112,13 @@ export interface SimulatedAircraft {
   type: string;
   position: { x: number; y: number };
   heading: number;
-  status: 'taxiing' | 'holding' | 'pushback' | 'parked' | 'emergency';
+  status: 'taxiing' | 'holding' | 'pushback' | 'parked' | 'emergency' | 'grounded';
   gate?: string;
   runway?: string;
   route?: string[];
   lastUpdate: Date;
   automatedRoute?: string[];
+  groundedReason?: string; // Reason if aircraft is grounded by AI
   simulationData?: {
     scheduledEvents: string[];
     complianceFlags: string[];

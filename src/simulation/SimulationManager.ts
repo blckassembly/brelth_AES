@@ -1,4 +1,4 @@
-import { ScenarioConfig, SimulationEvent, SimulationState, SimulationEventType } from '../types/simulation';
+import { ScenarioConfig, SimulationEvent, SimulationState, SimulationEventType, SimulatedAircraft, SimulatedWeatherData } from '../types/simulation';
 
 export class SimulationManager {
   private state: SimulationState;
@@ -29,6 +29,88 @@ export class SimulationManager {
     };
 
     this.loadDefaultScenarios();
+  }
+
+  // AI Grounding functionality
+  triggerAIGroundingCheck(aircraft: SimulatedAircraft[], weather: SimulatedWeatherData | null): void {
+    if (!weather || !aircraft) return;
+
+    // AI decision-making logic for grounding flights
+    const severeWeatherConditions = ['Heavy Rain', 'Thunderstorm', 'Heavy Snow', 'Fog'];
+    const lowVisibilityThreshold = 3; // SM
+    const highWindThreshold = 30; // knots
+
+    let groundingReason = '';
+
+    // Check weather conditions
+    if (severeWeatherConditions.some(condition => weather.conditions.includes(condition))) {
+      groundingReason = `Severe weather: ${weather.conditions}`;
+    } else if (weather.visibility < lowVisibilityThreshold) {
+      groundingReason = `Low visibility: ${weather.visibility} SM`;
+    } else if (weather.windSpeed > highWindThreshold) {
+      groundingReason = `High winds: ${weather.windSpeed} knots`;
+    }
+
+    // If conditions warrant grounding
+    if (groundingReason) {
+      aircraft.forEach(ac => {
+        // Only ground aircraft that are not already grounded and are not in critical operations
+        if (ac.status !== 'grounded' && ac.status !== 'emergency') {
+          // Inject grounding event
+          const groundingEvent: SimulationEvent = {
+            id: `AI_GROUND_${Date.now()}_${ac.id}`,
+            timestamp: this.state.currentTime,
+            type: SimulationEventType.FLIGHT_GROUNDED,
+            parameters: {
+              aircraftId: ac.id,
+              callsign: ac.callsign,
+              reason: groundingReason,
+              authority: 'FAA_AI_SYSTEM',
+              timestamp: new Date().toISOString()
+            },
+            expectedComplianceResponse: 'Aircraft grounded and notifications sent',
+            loggingRequirements: ['DO-326A', 'FAA Grounding Log', 'AI Decision Log'],
+            dalLevel: 'A',
+            priority: 'critical'
+          };
+
+          this.injectEvent(groundingEvent);
+        }
+      });
+    }
+
+    // Additional AI checks for maintenance requirements
+    aircraft.forEach(ac => {
+      // Simulate random maintenance issues (in real implementation, this would be based on actual data)
+      if (Math.random() < 0.001 && ac.status !== 'grounded') { // 0.1% chance per check
+        const maintenanceReasons = [
+          'Scheduled maintenance due',
+          'Engine inspection required',
+          'Hydraulic system alert',
+          'Avionics check required'
+        ];
+        const reason = maintenanceReasons[Math.floor(Math.random() * maintenanceReasons.length)];
+
+        const maintenanceGroundingEvent: SimulationEvent = {
+          id: `AI_MAINT_GROUND_${Date.now()}_${ac.id}`,
+          timestamp: this.state.currentTime,
+          type: SimulationEventType.FLIGHT_GROUNDED,
+          parameters: {
+            aircraftId: ac.id,
+            callsign: ac.callsign,
+            reason: `Maintenance: ${reason}`,
+            authority: 'FAA_AI_SYSTEM',
+            timestamp: new Date().toISOString()
+          },
+          expectedComplianceResponse: 'Aircraft grounded for maintenance',
+          loggingRequirements: ['DO-326A', 'Maintenance Log', 'AI Decision Log'],
+          dalLevel: 'A',
+          priority: 'high'
+        };
+
+        this.injectEvent(maintenanceGroundingEvent);
+      }
+    });
   }
 
   // Lifecycle management
@@ -253,6 +335,9 @@ export class SimulationManager {
           break;
         case SimulationEventType.COMPLIANCE_CHECK:
           this.emit('complianceCheck', event);
+          break;
+        case SimulationEventType.FLIGHT_GROUNDED:
+          this.emit('flightGrounded', event);
           break;
       }
 

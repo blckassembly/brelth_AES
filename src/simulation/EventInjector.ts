@@ -267,5 +267,40 @@ export class EventInjector {
         ]
       };
     });
+
+    // Flight grounded handler
+    this.registerHandler(SimulationEventType.FLIGHT_GROUNDED, (event: SimulationEvent, state: any) => {
+      const { aircraftId, callsign, reason, authority } = event.parameters;
+      
+      // Update aircraft status to grounded
+      const updatedAircraft = state.aircraft.map((aircraft: any) => {
+        if (aircraft.id === aircraftId || aircraft.callsign === callsign) {
+          return {
+            ...aircraft,
+            status: 'grounded',
+            groundedReason: reason,
+            lastUpdate: new Date()
+          };
+        }
+        return aircraft;
+      });
+
+      // Create grounding alert
+      const groundingAlert = {
+        id: `GROUNDING_${Date.now()}`,
+        type: 'emergency' as const,
+        severity: 'high' as const,
+        message: `Flight ${callsign} grounded by ${authority}: ${reason}`,
+        timestamp: new Date(),
+        resolved: false,
+        location: `Aircraft ${callsign}`
+      };
+
+      return {
+        ...state,
+        aircraft: updatedAircraft,
+        alerts: [...state.alerts, groundingAlert]
+      };
+    });
   }
 }
