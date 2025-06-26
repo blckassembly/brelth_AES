@@ -1,0 +1,370 @@
+{
+  "id": "critical-operations",
+  "name": "Critical Operations Test Scenario",
+  "description": "Comprehensive test of system response to critical operational scenarios including runway incursions, emergency responses, and system failures",
+  "initialState": {
+    "aircraft": [
+      {
+        "id": "SIM_AC_001",
+        "callsign": "UAL234",
+        "type": "B737",
+        "position": { "x": 150, "y": 200 },
+        "heading": 270,
+        "status": "taxiing",
+        "gate": "A12",
+        "simulationData": {
+          "scheduledEvents": ["runway_approach", "emergency_scenario"],
+          "complianceFlags": ["dal_a_monitored"]
+        }
+      },
+      {
+        "id": "SIM_AC_002", 
+        "callsign": "DAL456",
+        "type": "A320",
+        "position": { "x": 300, "y": 150 },
+        "heading": 90,
+        "status": "parked",
+        "gate": "B8",
+        "simulationData": {
+          "scheduledEvents": ["pushback_request"],
+          "complianceFlags": ["dal_b_monitored"]
+        }
+      },
+      {
+        "id": "SIM_AC_003",
+        "callsign": "SWA789",
+        "type": "B737",
+        "position": { "x": 450, "y": 180 },
+        "heading": 180,
+        "status": "holding",
+        "runway": "09L",
+        "simulationData": {
+          "scheduledEvents": ["runway_clearance"],
+          "complianceFlags": ["dal_a_monitored"]
+        }
+      }
+    ],
+    "vehicles": [
+      {
+        "id": "SIM_VH_001",
+        "type": "emergency",
+        "position": { "x": 100, "y": 100 },
+        "status": "idle",
+        "simulationData": {
+          "responseTime": 45,
+          "scheduledTasks": ["emergency_response"]
+        }
+      },
+      {
+        "id": "SIM_VH_002",
+        "type": "pushback",
+        "position": { "x": 280, "y": 130 },
+        "status": "idle",
+        "assignedAircraft": "DAL456",
+        "simulationData": {
+          "responseTime": 120,
+          "scheduledTasks": ["pushback_assist"]
+        }
+      },
+      {
+        "id": "SIM_VH_003",
+        "type": "follow-me",
+        "position": { "x": 200, "y": 250 },
+        "status": "active",
+        "simulationData": {
+          "responseTime": 30,
+          "scheduledTasks": ["aircraft_guidance"]
+        }
+      }
+    ],
+    "runways": [
+      {
+        "id": "RW09L",
+        "name": "09L/27R",
+        "status": "active",
+        "windDirection": 270,
+        "windSpeed": 15,
+        "simulationData": {
+          "incursionEvents": [],
+          "maintenanceSchedule": []
+        }
+      },
+      {
+        "id": "RW09R",
+        "name": "09R/27L", 
+        "status": "occupied",
+        "occupiedBy": "AAL123",
+        "windDirection": 270,
+        "windSpeed": 15,
+        "simulationData": {
+          "incursionEvents": ["scheduled_incursion_test"],
+          "maintenanceSchedule": []
+        }
+      }
+    ],
+    "taxiways": [
+      {
+        "id": "TW_A",
+        "name": "Alpha",
+        "status": "clear",
+        "congestionLevel": "low",
+        "simulationData": {
+          "trafficHistory": [1, 2, 1, 3, 2],
+          "blockageEvents": []
+        }
+      },
+      {
+        "id": "TW_B", 
+        "name": "Bravo",
+        "status": "occupied",
+        "occupiedBy": "UAL234",
+        "congestionLevel": "medium",
+        "simulationData": {
+          "trafficHistory": [3, 4, 5, 4, 6],
+          "blockageEvents": []
+        }
+      },
+      {
+        "id": "TW_C",
+        "name": "Charlie",
+        "status": "clear",
+        "congestionLevel": "high",
+        "simulationData": {
+          "trafficHistory": [5, 6, 7, 8, 7],
+          "blockageEvents": ["congestion_test"]
+        }
+      }
+    ],
+    "gates": [
+      {
+        "id": "SIM_G1",
+        "number": "A12",
+        "status": "occupied",
+        "type": "narrow",
+        "scheduledDeparture": "2024-01-15T14:30:00Z",
+        "simulationData": {
+          "turnaroundTimes": [45, 52, 48, 43, 50],
+          "utilizationRate": 0.85
+        }
+      },
+      {
+        "id": "SIM_G2",
+        "number": "B8", 
+        "status": "occupied",
+        "type": "wide",
+        "scheduledDeparture": "2024-01-15T15:15:00Z",
+        "simulationData": {
+          "turnaroundTimes": [65, 72, 68, 63, 70],
+          "utilizationRate": 0.92
+        }
+      },
+      {
+        "id": "SIM_G3",
+        "number": "C4",
+        "status": "available", 
+        "type": "narrow",
+        "simulationData": {
+          "turnaroundTimes": [40, 45, 42, 38, 44],
+          "utilizationRate": 0.65
+        }
+      }
+    ],
+    "weather": {
+      "visibility": 8.5,
+      "windDirection": 270,
+      "windSpeed": 15,
+      "temperature": 22,
+      "pressure": 29.92,
+      "conditions": "Overcast",
+      "simulationData": {
+        "forecast": [
+          {
+            "time": 30000,
+            "conditions": "Light Rain",
+            "visibility": 5.0,
+            "windSpeed": 20
+          },
+          {
+            "time": 120000,
+            "conditions": "Heavy Rain",
+            "visibility": 2.0,
+            "windSpeed": 25
+          }
+        ]
+      }
+    }
+  },
+  "timeline": [
+    {
+      "id": "runway_incursion_alert",
+      "timestamp": 30000,
+      "type": "alertTrigger",
+      "parameters": {
+        "alertType": "incursion",
+        "runway": "09L",
+        "aircraft": "UAL234",
+        "severity": "critical",
+        "message": "Unauthorized runway entry detected"
+      },
+      "expectedComplianceResponse": "Immediate alert generation and conflict resolution activation",
+      "loggingRequirements": ["DO-326A", "Safety Alert Log", "Event Trace"],
+      "dalLevel": "A",
+      "priority": "critical"
+    },
+    {
+      "id": "emergency_declaration",
+      "timestamp": 60000,
+      "type": "emergencyScenario",
+      "parameters": {
+        "aircraft": "DAL456",
+        "emergencyType": "engine_failure",
+        "priority": "mayday",
+        "location": "Gate B8",
+        "requestedAssistance": ["emergency_vehicles", "medical", "fire_rescue"]
+      },
+      "expectedComplianceResponse": "Emergency protocol activation within 15 seconds",
+      "loggingRequirements": ["DO-326A", "Emergency Log", "Priority Event"],
+      "dalLevel": "A", 
+      "priority": "critical"
+    },
+    {
+      "id": "communication_failure",
+      "timestamp": 90000,
+      "type": "communicationFailure",
+      "parameters": {
+        "affectedEntity": "Tower_Control",
+        "failureType": "radio_blackout", 
+        "duration": 120000,
+        "backupSystems": ["satellite", "landline"],
+        "affectedFrequencies": ["118.1", "121.9"]
+      },
+      "expectedComplianceResponse": "Automatic failover to backup communication systems",
+      "loggingRequirements": ["DO-326A", "System Fault Log"],
+      "dalLevel": "B",
+      "priority": "high"
+    },
+    {
+      "id": "weather_deterioration", 
+      "timestamp": 120000,
+      "type": "weatherUpdate",
+      "parameters": {
+        "visibility": 2.0,
+        "windSpeed": 25,
+        "conditions": "Heavy Rain",
+        "windDirection": 280,
+        "turbulence": "moderate",
+        "impact": "reduced_operations"
+      },
+      "expectedComplianceResponse": "Weather alert generation and operational adjustments",
+      "loggingRequirements": ["Weather Log", "Operations Impact"],
+      "dalLevel": "B",
+      "priority": "medium"
+    },
+    {
+      "id": "system_partition_test",
+      "timestamp": 150000,
+      "type": "systemFault",
+      "parameters": {
+        "systemComponent": "DAL_B_Monitoring",
+        "faultType": "partition_boundary_violation",
+        "severity": "high",
+        "affectedPartition": "DAL_B",
+        "isolationTest": true
+      },
+      "expectedComplianceResponse": "DAL A functions remain unaffected, fault containment verified",
+      "loggingRequirements": ["DO-326A", "Partition Isolation Test", "Compliance Verification"],
+      "dalLevel": "B",
+      "priority": "high"
+    },
+    {
+      "id": "multiple_vehicle_dispatch",
+      "timestamp": 180000,
+      "type": "vehicleDispatch", 
+      "parameters": {
+        "vehicles": ["S IM_VH_001", "SIM_VH_004", "SIM_VH_005"],
+        "emergencyType": "aircraft_emergency",
+        "targetLocation": {"x": 300, "y": 150},
+        "coordinatedResponse": true,
+        "responseTimeRequirement": 180
+      },
+      "expectedComplianceResponse": "Coordinated emergency vehicle response within 3 minutes",
+      "loggingRequirements": ["Emergency Response Log", "Vehicle Coordination"],
+      "dalLevel": "A",
+      "priority": "critical"
+    },
+    {
+      "id": "runway_status_change",
+      "timestamp": 210000,
+      "type": "runwayStatusChange",
+      "parameters": {
+        "runwayId": "RW09R",
+        "newStatus": "closed",
+        "reason": "emergency_response",
+        "estimatedReopenTime": 300000,
+        "alternativeRunways": ["RW09L", "RW04L"]
+      },
+      "expectedComplianceResponse": "Traffic rerouting and runway closure notifications",
+      "loggingRequirements": ["Runway Operations Log", "Traffic Management"],
+      "dalLevel": "A",
+      "priority": "high"
+    },
+    {
+      "id": "compliance_verification",
+      "timestamp": 240000,
+      "type": "complianceCheck",
+      "parameters": {
+        "checkType": "dal_isolation_verification",
+        "regulation": "DO-178C DAL A/B Isolation",
+        "expectedResult": "no_cross_partition_interference",
+        "testDuration": 30000,
+        "monitoredSystems": ["flight_control", "monitoring", "communications"]
+      },
+      "expectedComplianceResponse": "Compliance verification report generation",
+      "loggingRequirements": ["DO-326A", "Compliance Test Results", "Audit Trail"],
+      "dalLevel": "A",
+      "priority": "medium"
+    }
+  ],
+  "complianceTestCases": [
+    {
+      "id": "dal_a_isolation_test",
+      "regulation": "DO-178C DAL A",
+      "requirement": "Safety-critical functions must be isolated from non-critical functions",
+      "expectedOutcome": "DAL A functions continue operation during DAL B failures",
+      "testType": "isolation"
+    },
+    {
+      "id": "response_time_verification",
+      "regulation": "DO-178C Response Time",
+      "requirement": "Critical events must be processed within 100ms",
+      "expectedOutcome": "All DAL A events processed within time limits",
+      "testType": "response_time"
+    },
+    {
+      "id": "safety_rule_enforcement",
+      "regulation": "FAA Safety Rules",
+      "requirement": "System must prevent and detect safety violations",
+      "expectedOutcome": "All safety violations detected and logged",
+      "testType": "safety_rule"
+    },
+    {
+      "id": "black_box_logging",
+      "regulation": "DO-326A",
+      "requirement": "All critical events must be logged with integrity verification",
+      "expectedOutcome": "Complete audit trail with data integrity verification",
+      "testType": "logging"
+    },
+    {
+      "id": "error_handling_verification",
+      "regulation": "DO-178C Error Handling",
+      "requirement": "System must gracefully handle and recover from errors",
+      "expectedOutcome": "All errors handled without system compromise",
+      "testType": "error_handling"
+    }
+  ],
+  "systemParameters": {
+    "duration": 300,
+    "criticalResponseTime": 5,
+    "maxConcurrentEvents": 5
+  }
+}
