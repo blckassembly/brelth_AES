@@ -16,12 +16,13 @@ import { FlightPlanManagement } from './components/FlightPlanManagement';
 import { SchedulingFlow } from './components/SchedulingFlow';
 import { ResourceManagement } from './components/ResourceManagement';
 import { FaaComplianceDashboard } from './components/FaaComplianceDashboard';
+import { AdsbSimulator } from './components/AdsbSimulator';
 import type { AutomatedProcess } from './hooks/useRealtimeData';
 
 type ActiveView = 'surface-map' | 'runway-status' | 'gate-management' | 'vehicle-tracking' | 
                   'communications' | 'weather' | 'alerts' | 'operations-log' | 'ai-assistant' |
                   'flight-tracking' | 'flight-plan-management' | 'scheduling-flow' | 'resource-management' |
-                  'faa-compliance';
+                  'faa-compliance' | 'adsb-simulator';
 
 function App() {
   const [activeView, setActiveView] = useState<ActiveView>('surface-map');
@@ -71,6 +72,7 @@ function App() {
     { id: 'flight-plan-management', label: 'Flight Plan Management', icon: '📄' },
     { id: 'scheduling-flow', label: 'Scheduling & Flow', icon: '🕐' },
     { id: 'resource-management', label: 'Resource Management', icon: '⚙️' },
+    { id: 'adsb-simulator', label: 'ADS-B Simulator', icon: '📡' },
     { id: 'ai-assistant', label: 'AI Command Center', icon: '🤖' },
     { id: 'faa-compliance', label: 'FAA NEXTGEN COMPLIANT', icon: '🛡️' }
   ] as const;
@@ -158,6 +160,12 @@ function App() {
               <ResourceManagement />
             </div>
           );
+        case 'adsb-simulator':
+          return (
+            <div className="h-full">
+              <AdsbSimulator />
+            </div>
+          );
         case 'ai-assistant':
           return (
             <div className="h-full">
@@ -235,6 +243,11 @@ function App() {
                   <span className="font-semibold">{item.label}</span>
                   {item.id === 'ai-assistant' && activeAutomatedProcesses.length > 0 && (
                     <span className="ml-auto w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></span>
+                  )}
+                  {item.id === 'adsb-simulator' && (
+                    <span className="ml-auto text-xs bg-blue-400/20 text-blue-400 px-2 py-1 rounded border border-blue-400/30">
+                      PYTHON
+                    </span>
                   )}
                   {item.id === 'faa-compliance' && (
                     <span className="ml-auto text-xs bg-green-400/20 text-green-400 px-2 py-1 rounded border border-green-400/30">

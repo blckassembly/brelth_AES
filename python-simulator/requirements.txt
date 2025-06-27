@@ -1,0 +1,30 @@
+# ADS-B Simulator Dependencies
+
+# Core dependencies
+confluent-kafka>=2.3.0
+faker>=20.1.0
+geopy>=2.4.0
+python-dateutil>=2.8.2
+pyyaml>=6.0.1
+
+# Optional dependencies for enhanced functionality
+numpy>=1.24.0
+pandas>=2.0.0
+
+# Development and testing
+pytest>=7.4.0
+pytest-cov>=4.1.0
+black>=23.0.0
+flake8>=6.0.0
+mypy>=1.5.0
+
+# Logging and monitoring
+structlog>=23.1.0
+prometheus-client>=0.17.0
+
+# Performance
+uvloop>=0.17.0; sys_platform != "win32"
+
+# Documentation
+sphinx>=7.1.0
+sphinx-rtd-theme>=1.3.0

@@ -1,0 +1,126 @@
+# ADS-B Simulator Configuration
+
+simulation:
+  # Number of aircraft to simulate (50-1000)
+  num_aircraft: 75
+  
+  # Message generation intervals (seconds)
+  message_interval_min: 1
+  message_interval_max: 5
+  
+  # Emergency scenario frequency (probability per update cycle)
+  emergency_frequency: 0.001  # 0.1% chance per cycle
+  
+  # Separation conflict frequency (probability per aircraft pair per update)
+  separation_frequency: 0.002  # 0.2% chance per pair per cycle
+  
+  # Geographic coverage
+  geographic_region: "global"  # global, north_america, europe, asia_pacific
+
+# Kafka configuration
+kafka:
+  bootstrap_servers: "localhost:9092"
+  topic: "adsb_messages"
+  
+  # Producer settings
+  producer:
+    acks: "all"
+    retries: 3
+    batch_size: 16384
+    linger_ms: 10
+    buffer_memory: 33554432
+
+# Aircraft type distribution
+aircraft_types:
+  jet_ratio: 0.7  # 70% jets, 30% props
+
+# Performance settings
+performance:
+  # Update rate (Hz)
+  update_rate: 10
+  
+  # Statistics logging interval (seconds)
+  stats_interval: 30
+  
+  # Maximum message rate per aircraft (msg/sec)
+  max_message_rate: 1.0
+
+# Edge case scenarios
+edge_cases:
+  # Emergency squawk codes
+  emergency_types:
+    - hijack: "7500"
+    - communication: "7600" 
+    - general: "7700"
+  
+  # Separation minimums
+  separation:
+    horizontal_nm: 5      # Nautical miles
+    vertical_ft: 1000     # Feet
+
+# Logging configuration
+logging:
+  level: "INFO"
+  file: "adsb_simulator.log"
+  max_file_size: "10MB"
+  backup_count: 5
+
+# Realistic flight parameters
+flight_parameters:
+  jets:
+    cruise_altitude_min: 25000    # feet
+    cruise_altitude_max: 42000    # feet
+    cruise_speed_min: 400         # knots
+    cruise_speed_max: 550         # knots
+    max_speed: 600                # knots
+    min_speed: 200                # knots
+    climb_rate_min: 1500          # ft/min
+    climb_rate_max: 3000          # ft/min
+    turn_rate_max: 3.0            # degrees/second
+    
+  props:
+    cruise_altitude_min: 8000     # feet
+    cruise_altitude_max: 18000    # feet
+    cruise_speed_min: 150         # knots
+    cruise_speed_max: 220         # knots
+    max_speed: 250                # knots
+    min_speed: 80                 # knots
+    climb_rate_min: 500           # ft/min
+    climb_rate_max: 1200          # ft/min
+    turn_rate_max: 5.0            # degrees/second
+
+# Airport pairs for realistic routes (sample)
+airport_pairs:
+  transatlantic:
+    - ["JFK", "LHR"]  # New York to London
+    - ["LAX", "CDG"]  # Los Angeles to Paris
+    - ["MIA", "MAD"]  # Miami to Madrid
+    - ["BOS", "DUB"]  # Boston to Dublin
+    
+  domestic_us:
+    - ["JFK", "LAX"]  # New York to Los Angeles
+    - ["ORD", "DFW"]  # Chicago to Dallas
+    - ["ATL", "SEA"]  # Atlanta to Seattle
+    - ["MIA", "SFO"]  # Miami to San Francisco
+    
+  european:
+    - ["LHR", "CDG"]  # London to Paris
+    - ["FRA", "FCO"]  # Frankfurt to Rome
+    - ["AMS", "BCN"]  # Amsterdam to Barcelona
+    - ["ZUR", "VIE"]  # Zurich to Vienna
+
+# Test scenarios
+test_scenarios:
+  stress_test:
+    num_aircraft: 500
+    message_interval_min: 0.5
+    message_interval_max: 2.0
+    emergency_frequency: 0.005
+    
+  emergency_drill:
+    num_aircraft: 50
+    emergency_frequency: 0.1  # High emergency rate for testing
+    
+  separation_test:
+    num_aircraft: 100
+    separation_frequency: 0.01  # Higher conflict rate for testing
