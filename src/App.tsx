@@ -24,6 +24,24 @@ type ActiveView = 'surface-map' | 'runway-status' | 'gate-management' | 'vehicle
                   'flight-tracking' | 'flight-plan-management' | 'scheduling-flow' | 'resource-management' |
                   'faa-compliance' | 'adsb-simulator';
 
+interface NavigationItem {
+  id: string;
+  label: string;
+  icon: string;
+  badge?: string;
+  badgeColor?: string;
+}
+
+interface NavigationSection {
+  type: 'category' | 'item';
+  label?: string;
+  items?: NavigationItem[];
+  id?: string;
+  icon?: string;
+  badge?: string;
+  badgeColor?: string;
+}
+
 function App() {
   const [activeView, setActiveView] = useState<ActiveView>('surface-map');
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -59,23 +77,46 @@ function App() {
     }
   };
 
-  const navigationItems = [
-    { id: 'surface-map', label: 'Surface Movement', icon: '🗺️' },
-    { id: 'runway-status', label: 'Runway Status', icon: '🛫' },
-    { id: 'gate-management', label: 'Gate Management', icon: '🚪' },
-    { id: 'vehicle-tracking', label: 'Vehicle Tracking', icon: '🚛' },
-    { id: 'communications', label: 'Communications', icon: '📡' },
-    { id: 'weather', label: 'Weather Data', icon: '🌤️' },
-    { id: 'alerts', label: 'Alerts & Warnings', icon: '⚠️' },
-    { id: 'operations-log', label: 'Operations Log', icon: '📋' },
-    { id: 'flight-tracking', label: 'Flight Tracking', icon: '✈️' },
-    { id: 'flight-plan-management', label: 'Flight Plan Management', icon: '📄' },
-    { id: 'scheduling-flow', label: 'Scheduling & Flow', icon: '🕐' },
-    { id: 'resource-management', label: 'Resource Management', icon: '⚙️' },
-    { id: 'adsb-simulator', label: 'ADS-B Simulator', icon: '📡' },
-    { id: 'ai-assistant', label: 'AI Command Center', icon: '🤖' },
-    { id: 'faa-compliance', label: 'FAA NEXTGEN COMPLIANT', icon: '🛡️' }
-  ] as const;
+  const navigationSections: NavigationSection[] = [
+    {
+      type: 'category',
+      label: 'Ground Operations',
+      items: [
+        { id: 'surface-map', label: 'Surface Movement', icon: '🗺️' },
+        { id: 'runway-status', label: 'Runway Status', icon: '🛫' },
+        { id: 'gate-management', label: 'Gate Management', icon: '🚪' },
+        { id: 'vehicle-tracking', label: 'Vehicle Tracking', icon: '🚛' },
+        { id: 'communications', label: 'Communications', icon: '📡' },
+        { id: 'weather', label: 'Weather Data', icon: '🌤️' },
+        { id: 'alerts', label: 'Alerts & Warnings', icon: '⚠️' },
+        { id: 'operations-log', label: 'Operations Log', icon: '📋' }
+      ]
+    },
+    {
+      type: 'category',
+      label: 'Air Traffic Management',
+      items: [
+        { id: 'flight-tracking', label: 'Flight Tracking', icon: '✈️' },
+        { id: 'flight-plan-management', label: 'Flight Plan Management', icon: '📄' },
+        { id: 'scheduling-flow', label: 'Scheduling & Flow', icon: '🕐' },
+        { id: 'resource-management', label: 'Resource Management', icon: '⚙️' }
+      ]
+    },
+    {
+      type: 'category',
+      label: 'Simulation & Compliance',
+      items: [
+        { id: 'adsb-simulator', label: 'ADS-B Simulator', icon: '📡', badge: 'PYTHON', badgeColor: 'blue' },
+        { id: 'faa-compliance', label: 'FAA NEXTGEN COMPLIANT', icon: '🛡️', badge: 'CERT', badgeColor: 'green' }
+      ]
+    },
+    {
+      type: 'item',
+      id: 'ai-assistant',
+      label: 'AI Command Center',
+      icon: '🤖'
+    }
+  ];
 
   const renderMainContent = () => {
     try {
@@ -206,8 +247,21 @@ function App() {
 
   const getActiveItemClass = (itemId: string) => {
     return activeView === itemId
-      ? 'w-full text-left p-6 rounded-lg bg-yellow-400/20 border border-yellow-400/50 transition-all duration-200 text-lg font-bold text-yellow-400 hover:bg-yellow-400/30'
-      : 'w-full text-left p-6 rounded-lg hover:bg-yellow-400/10 transition-all duration-200 text-lg text-gray-300 hover:text-yellow-400 hover:border-yellow-400/30 border border-transparent';
+      ? 'w-full text-left p-4 rounded-lg bg-yellow-400/20 border-l-4 border-l-yellow-400 border-r border-t border-b border-yellow-400/50 transition-all duration-200 text-lg font-bold text-yellow-400 hover:bg-yellow-400/30 shadow-lg shadow-yellow-400/10'
+      : 'w-full text-left p-4 rounded-lg hover:bg-yellow-400/10 transition-all duration-200 text-lg text-gray-300 hover:text-yellow-400 hover:border-yellow-400/30 hover:border-l-2 hover:border-l-yellow-400/50 border border-transparent hover:shadow-md hover:shadow-yellow-400/5';
+  };
+
+  const getBadgeColor = (color?: string) => {
+    switch (color) {
+      case 'blue':
+        return 'bg-blue-400/20 text-blue-400 border-blue-400/30';
+      case 'green':
+        return 'bg-green-400/20 text-green-400 border-green-400/30';
+      case 'purple':
+        return 'bg-purple-400/20 text-purple-400 border-purple-400/30';
+      default:
+        return 'bg-gray-400/20 text-gray-400 border-gray-400/30';
+    }
   };
 
   const activeAutomatedProcesses = automatedProcesses.filter(p => p.status === 'in-progress');
@@ -228,34 +282,75 @@ function App() {
           v2.1.0 | SECURE | FAA NEXTGEN COMPLIANT
         </div>
 
-        {/* Main Navigation */}
+        {/* Enhanced Navigation */}
         <div className="flex-1 overflow-auto">
-          <div className="text-sm text-gray-500 uppercase tracking-wider mb-6">Command & Control</div>
-          <div className="space-y-4">
-            {navigationItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => setActiveView(item.id as ActiveView)}
-                className={getActiveItemClass(item.id)}
-              >
-                <div className="flex items-center space-x-4">
-                  <span className="text-2xl">{item.icon}</span>
-                  <span className="font-semibold">{item.label}</span>
-                  {item.id === 'ai-assistant' && activeAutomatedProcesses.length > 0 && (
-                    <span className="ml-auto w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></span>
-                  )}
-                  {item.id === 'adsb-simulator' && (
-                    <span className="ml-auto text-xs bg-blue-400/20 text-blue-400 px-2 py-1 rounded border border-blue-400/30">
-                      PYTHON
-                    </span>
-                  )}
-                  {item.id === 'faa-compliance' && (
-                    <span className="ml-auto text-xs bg-green-400/20 text-green-400 px-2 py-1 rounded border border-green-400/30">
-                      CERT
-                    </span>
-                  )}
-                </div>
-              </button>
+          <div className="space-y-6">
+            {navigationSections.map((section, sectionIndex) => (
+              <div key={sectionIndex}>
+                {section.type === 'category' ? (
+                  <>
+                    {/* Category Header */}
+                    <div className="text-sm text-gray-500 uppercase tracking-wider mb-4 font-bold border-b border-gray-700 pb-2">
+                      {section.label}
+                    </div>
+                    
+                    {/* Category Items */}
+                    <div className="space-y-2 mb-6">
+                      {section.items?.map((item) => (
+                        <button
+                          key={item.id}
+                          onClick={() => setActiveView(item.id as ActiveView)}
+                          className={getActiveItemClass(item.id)}
+                        >
+                          <div className="flex items-center space-x-3">
+                            <span className="text-2xl">{item.icon}</span>
+                            <span className="font-semibold flex-1">{item.label}</span>
+                            
+                            {/* Special indicators */}
+                            {item.id === 'ai-assistant' && activeAutomatedProcesses.length > 0 && (
+                              <span className="w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></span>
+                            )}
+                            
+                            {/* Badges */}
+                            {item.badge && (
+                              <span className={`text-xs px-2 py-1 rounded border font-mono ${getBadgeColor(item.badgeColor)}`}>
+                                {item.badge}
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  /* Standalone Item */
+                  <div className="mb-6">
+                    <div className="text-sm text-gray-500 uppercase tracking-wider mb-4 font-bold border-b border-gray-700 pb-2">
+                      Command Center
+                    </div>
+                    <button
+                      key={section.id}
+                      onClick={() => setActiveView(section.id as ActiveView)}
+                      className={getActiveItemClass(section.id!)}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <span className="text-2xl">{section.icon}</span>
+                        <span className="font-semibold flex-1">{section.label}</span>
+                        
+                        {/* AI Assistant special indicator */}
+                        {section.id === 'ai-assistant' && activeAutomatedProcesses.length > 0 && (
+                          <div className="flex items-center space-x-2">
+                            <span className="w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></span>
+                            <span className="text-xs bg-yellow-400/20 text-yellow-400 px-2 py-1 rounded border border-yellow-400/30 font-mono">
+                              {activeAutomatedProcesses.length} ACTIVE
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </button>
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         </div>
