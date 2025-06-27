@@ -247,25 +247,6 @@ function App() {
           </div>
         </div>
 
-        {/* Security Compliance */}
-        <div className="mt-8">
-          <div className="text-sm text-gray-500 uppercase tracking-wider mb-4">Security</div>
-          <div className="space-y-2">
-            <div className="flex items-center space-x-3 p-3 text-sm">
-              <span className="text-green-400 text-lg">🔒</span>
-              <span className="text-gray-400">FIPS 140-2</span>
-            </div>
-            <div className="flex items-center space-x-3 p-3 text-sm">
-              <span className="text-green-400 text-lg">🛡️</span>
-              <span className="text-gray-400">NIST Compliant</span>
-            </div>
-            <div className="flex items-center space-x-3 p-3 text-sm">
-              <span className="text-green-400 text-lg">🔐</span>
-              <span className="text-gray-400">DoD Certified</span>
-            </div>
-          </div>
-        </div>
-
         {/* Real-time UTC Clock */}
         <div className="mt-8 pt-6 border-t border-yellow-400/20">
           <div className="text-sm text-gray-400">
