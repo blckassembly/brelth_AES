@@ -16,7 +16,7 @@ import { FlightPlanManagement } from './components/FlightPlanManagement';
 import { SchedulingFlow } from './components/SchedulingFlow';
 import { ResourceManagement } from './components/ResourceManagement';
 import { FaaComplianceDashboard } from './components/FaaComplianceDashboard';
-import { AdsbSimulator } from './components/AdsbSimulator';
+import { AdsbRealtimeSearch } from './components/AdsbRealtimeSearch';
 import type { AutomatedProcess } from './hooks/useRealtimeData';
 
 type ActiveView = 'surface-map' | 'runway-status' | 'gate-management' | 'vehicle-tracking' | 
@@ -204,7 +204,7 @@ function App() {
         case 'adsb-simulator':
           return (
             <div className="h-full">
-              <AdsbSimulator />
+              <AdsbRealtimeSearch />
             </div>
           );
         case 'ai-assistant':
