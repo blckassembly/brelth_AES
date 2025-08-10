@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { MessageSquare, Send, Mic, Brain, Zap, Shield, Globe, Play, Pause, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
 import { useRealtimeData } from '../hooks/useRealtimeData';
 import type { AutomatedProcess } from '../hooks/useRealtimeData';
+import { gatherLastKnownPosition, formatPosition, AdsbExchangeError, fetchOperations } from '../services/adsbExchangeApi';
+import type { LastKnownPosition } from '../services/adsbExchangeApi';
 
 interface ChatMessage {
   id: string;
@@ -9,7 +11,9 @@ interface ChatMessage {
   message: string;
   timestamp: Date;
   executed?: boolean;
-  commandType?: 'query' | 'control' | 'analysis' | 'alert' | 'automation';
+  commandType?: 'query' | 'control' | 'analysis' | 'alert' | 'automation' | 'adsb-search' | 'emergency';
+  isLoading?: boolean;
+  error?: boolean;
 }
 
 interface NaturalLanguageAssistantProps {
@@ -19,11 +23,12 @@ interface NaturalLanguageAssistantProps {
 export const NaturalLanguageAssistant: React.FC<NaturalLanguageAssistantProps> = ({ onAutomationUpdate }) => {
   const [input, setInput] = useState('');
   const [isListening, setIsListening] = useState(false);
+  const [isProcessingAdsbQuery, setIsProcessingAdsbQuery] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
       type: 'assistant',
-      message: 'AES Command & Control AI ready. I can execute ATC commands, analyze traffic patterns, provide real-time flight data from commercial, military, civilian, and private sources, and show active/inbound flights for LGA, JFK, TEB, and EWR. New: Automated processes available - try the automation buttons below for one-click operations.',
+      message: 'AES Command & Control AI ready. I can execute ATC commands, analyze traffic patterns, provide real-time flight data from commercial, military, civilian, and private sources, show active/inbound flights for LGA, JFK, TEB, and EWR, and locate aircraft using ADSB Exchange data. New: VIP aircraft tracking and emergency location services available.\n\n🚨 EMERGENCY COMMANDS:\n• "locate aircraft [ICAO]" - Find any aircraft worldwide\n• "find downed aircraft [ICAO]" - Emergency location service\n• "last position [ICAO]" - Get last known coordinates\n\nAutomated processes available - use the automation buttons below.',
       timestamp: new Date(Date.now() - 300000),
       commandType: 'query'
     }
@@ -92,6 +97,49 @@ export const NaturalLanguageAssistant: React.FC<NaturalLanguageAssistantProps> =
     onAutomationUpdate?.(automatedProcesses);
   };
 
+  // Enhanced ADSB Exchange integration for aircraft location
+  const handleAdsbQuery = async (icaoHex: string, isEmergency: boolean = false): Promise<string> => {
+    setIsProcessingAdsbQuery(true);
+    
+    try {
+      const position = await gatherLastKnownPosition(icaoHex);
+      
+      if (!position) {
+        return `❌ AIRCRAFT NOT FOUND: No tracking data available for ICAO ${icaoHex.toUpperCase()}. This aircraft may not exist, may not have ADS-B equipment, or may not have been active recently.`;
+      }
+
+      const formattedPosition = formatPosition(position);
+      
+      // If it's an emergency query and the data is old, add warning
+      const dataAge = Date.now() - position.timestamp.getTime();
+      const isOldData = dataAge > 24 * 60 * 60 * 1000; // Older than 24 hours
+      
+      if (isEmergency && isOldData) {
+        return `🚨 EMERGENCY ALERT - STALE DATA WARNING:\n\n${formattedPosition}\n\n⚠️ WARNING: This data is more than 24 hours old. For emergency response, coordinate with local authorities and air traffic control for real-time information.`;
+      }
+      
+      return `${isEmergency ? '🚨 EMERGENCY AIRCRAFT LOCATION:\n\n' : ''}${formattedPosition}${isEmergency ? '\n\n📞 Recommend immediate coordination with local ATC and emergency services.' : ''}`;
+      
+    } catch (error) {
+      console.error('ADSB query failed:', error);
+      
+      if (error instanceof AdsbExchangeError) {
+        if (error.status === 429) {
+          return `⚠️ API RATE LIMITED: Too many requests to ADSB Exchange. Please wait a moment before trying again.`;
+        } else if (error.status === 403) {
+          return `🔒 API ACCESS DENIED: Authentication failed with ADSB Exchange. Please check API key configuration.`;
+        } else if (error.status && error.status >= 500) {
+          return `🔧 SERVICE UNAVAILABLE: ADSB Exchange servers are experiencing issues. Please try again in a few minutes.`;
+        }
+        return `❌ ADSB QUERY FAILED: ${error.message}`;
+      }
+      
+      return `❌ SYSTEM ERROR: Unable to query ADSB Exchange. Please check your internet connection and try again.`;
+    } finally {
+      setIsProcessingAdsbQuery(false);
+    }
+  };
+
   const handleSendMessage = () => {
     if (!input.trim()) return;
 
@@ -103,8 +151,48 @@ export const NaturalLanguageAssistant: React.FC<NaturalLanguageAssistantProps> =
     };
 
     // Enhanced AI processing for comprehensive ATC command and control
-    const processCommand = (command: string): { message: string; executed: boolean; commandType: 'query' | 'control' | 'analysis' | 'alert' | 'automation' } => {
+    const processCommand = async (command: string): Promise<{ message: string; executed: boolean; commandType: 'query' | 'control' | 'analysis' | 'alert' | 'automation' | 'adsb-search' | 'emergency'; isAsync?: boolean }> => {
       const lowerCommand = command.toLowerCase();
+      
+      // Enhanced ADSB Exchange Integration - VIP Aircraft Tracking
+      const icaoMatch = command.match(/\b([a-fA-F0-9]{6})\b/);
+      
+      if ((lowerCommand.includes('locate') || lowerCommand.includes('find') || lowerCommand.includes('track') || lowerCommand.includes('search')) && 
+          (lowerCommand.includes('aircraft') || lowerCommand.includes('plane') || lowerCommand.includes('flight'))) {
+        
+        if (icaoMatch) {
+          const icaoHex = icaoMatch[1];
+          const isEmergency = lowerCommand.includes('downed') || lowerCommand.includes('emergency') || 
+                             lowerCommand.includes('missing') || lowerCommand.includes('crashed') ||
+                             lowerCommand.includes('vip') || lowerCommand.includes('critical');
+          
+          // This will be handled asynchronously
+          return {
+            message: `🔍 Querying ADSB Exchange for aircraft ${icaoHex.toUpperCase()}...`,
+            executed: false,
+            commandType: isEmergency ? 'emergency' : 'adsb-search',
+            isAsync: true
+          };
+        } else {
+          return {
+            message: `❌ INVALID COMMAND: Please provide a valid ICAO hex code (6 characters). Example: "locate aircraft A1B2C3" or "find downed aircraft 4D2228"`,
+            executed: false,
+            commandType: 'adsb-search'
+          };
+        }
+      }
+      
+      if (lowerCommand.includes('last position') || lowerCommand.includes('last known')) {
+        if (icaoMatch) {
+          const icaoHex = icaoMatch[1];
+          return {
+            message: `🔍 Retrieving last known position for ${icaoHex.toUpperCase()}...`,
+            executed: false,
+            commandType: 'adsb-search',
+            isAsync: true
+          };
+        }
+      }
       
       // Enhanced Active Flights Queries
       if (lowerCommand.includes('active flights') || lowerCommand.includes('show active')) {
@@ -231,23 +319,71 @@ export const NaturalLanguageAssistant: React.FC<NaturalLanguageAssistantProps> =
       
       // Default enhanced response
       return {
-        message: `🤖 AES Command Center ready. I can process:\n• Active flights queries ("show active flights")\n• Airport-specific inbound flights ("show inbound flights for JFK")\n• Traffic analysis and predictions\n• Ground control commands\n• Emergency protocols\n• Automated operations\n\nUse automation buttons for one-click processes. Specify aircraft callsign, airport code (LGA/JFK/EWR/TEB), or command type for precise execution.`,
+        message: `🤖 AES Command Center ready. I can process:\n• Active flights queries ("show active flights")\n• Airport-specific inbound flights ("show inbound flights for JFK")\n• Aircraft location services ("locate aircraft A1B2C3")\n• Emergency aircraft tracking ("find downed aircraft 4D2228")\n• Traffic analysis and predictions\n• Ground control commands\n• Automated operations\n\nUse automation buttons for one-click processes. For aircraft tracking, provide 6-character ICAO hex codes.`,
         executed: false,
         commandType: 'query'
       };
     };
 
-    const response = processCommand(input);
-    const assistantMessage: ChatMessage = {
-      id: (Date.now() + 1).toString(),
-      type: 'assistant',
-      message: response.message,
-      timestamp: new Date(),
-      executed: response.executed,
-      commandType: response.commandType
+    // Handle async commands (ADSB queries)
+    const handleAsyncCommand = async () => {
+      const response = await processCommand(input);
+      
+      if (response.isAsync) {
+        // Show loading message first
+        const loadingMessage: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          type: 'assistant',
+          message: response.message,
+          timestamp: new Date(),
+          executed: false,
+          commandType: response.commandType,
+          isLoading: true
+        };
+        
+        setMessages(prev => [...prev, userMessage, loadingMessage]);
+        
+        // Process ADSB query
+        const icaoMatch = input.match(/\b([a-fA-F0-9]{6})\b/);
+        if (icaoMatch) {
+          const icaoHex = icaoMatch[1];
+          const isEmergency = input.toLowerCase().includes('downed') || input.toLowerCase().includes('emergency') || 
+                             input.toLowerCase().includes('missing') || input.toLowerCase().includes('vip');
+          
+          const adsbResult = await handleAdsbQuery(icaoHex, isEmergency);
+          
+          // Update the loading message with results
+          const resultMessage: ChatMessage = {
+            id: loadingMessage.id,
+            type: 'assistant',
+            message: adsbResult,
+            timestamp: new Date(),
+            executed: true,
+            commandType: response.commandType,
+            isLoading: false,
+            error: adsbResult.includes('❌') || adsbResult.includes('⚠️')
+          };
+          
+          setMessages(prev => prev.map(msg => 
+            msg.id === loadingMessage.id ? resultMessage : msg
+          ));
+        }
+      } else {
+        // Handle non-async commands normally
+        const assistantMessage: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          type: 'assistant',
+          message: response.message,
+          timestamp: new Date(),
+          executed: response.executed,
+          commandType: response.commandType
+        };
+        
+        setMessages(prev => [...prev, userMessage, assistantMessage]);
+      }
     };
 
-    setMessages(prev => [...prev, userMessage, assistantMessage]);
+    handleAsyncCommand();
     setInput('');
   };
 
@@ -269,6 +405,8 @@ export const NaturalLanguageAssistant: React.FC<NaturalLanguageAssistantProps> =
       case 'alert': return <Shield className="w-3 h-3 text-red-400" />;
       case 'query': return <Globe className="w-3 h-3 text-blue-400" />;
       case 'automation': return <Play className="w-3 h-3 text-yellow-400" />;
+      case 'adsb-search': return <Globe className="w-3 h-3 text-cyan-400" />;
+      case 'emergency': return <AlertTriangle className="w-3 h-3 text-red-400 animate-pulse" />;
       default: return <MessageSquare className="w-3 h-3 text-gray-400" />;
     }
   };
@@ -280,6 +418,8 @@ export const NaturalLanguageAssistant: React.FC<NaturalLanguageAssistantProps> =
       case 'alert': return 'ALERT';
       case 'query': return 'QUERY';
       case 'automation': return 'AUTOMATION';
+      case 'adsb-search': return 'AIRCRAFT SEARCH';
+      case 'emergency': return 'EMERGENCY';
       default: return 'INFO';
     }
   };
@@ -395,12 +535,19 @@ export const NaturalLanguageAssistant: React.FC<NaturalLanguageAssistantProps> =
             className={`
               p-4 rounded-lg max-w-[85%] ${message.type === 'user' 
                 ? 'bg-blue-400/10 border border-blue-400/20 ml-auto text-blue-400' 
-                : 'bg-gray-900 border border-yellow-400/20 text-gray-200'
+                : message.commandType === 'emergency' 
+                  ? 'bg-red-400/10 border border-red-400/30 text-gray-200'
+                  : message.error
+                    ? 'bg-red-400/10 border border-red-400/20 text-gray-200'
+                    : 'bg-gray-900 border border-yellow-400/20 text-gray-200'
               }
             `}
           >
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center space-x-2">
+                {message.isLoading && (
+                  <div className="w-3 h-3 border border-yellow-400 border-t-transparent rounded-full animate-spin"></div>
+                )}
                 <span className="text-xs font-mono font-bold opacity-80">
                   {message.type === 'user' ? 'ATC CONTROLLER' : 'AES AI COMMAND'}
                 </span>
@@ -424,6 +571,12 @@ export const NaturalLanguageAssistant: React.FC<NaturalLanguageAssistantProps> =
                 <span className="text-xs text-green-400 font-mono">COMMAND EXECUTED - SYSTEM UPDATED</span>
               </div>
             )}
+            {message.isLoading && (
+              <div className="flex items-center space-x-2 mt-3 p-2 bg-yellow-400/10 border border-yellow-400/20 rounded">
+                <div className="w-3 h-3 border border-yellow-400 border-t-transparent rounded-full animate-spin"></div>
+                <span className="text-xs text-yellow-400 font-mono">PROCESSING ADSB EXCHANGE QUERY...</span>
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -436,7 +589,8 @@ export const NaturalLanguageAssistant: React.FC<NaturalLanguageAssistantProps> =
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Try: 'show active flights' or 'show inbound flights for JFK'..."
+            placeholder="Try: 'locate aircraft A1B2C3' or 'find downed aircraft 4D2228' or 'show active flights'..."
+            disabled={isProcessingAdsbQuery}
             className="w-full bg-gray-900 border border-yellow-400/20 rounded-lg px-4 py-3 text-sm text-yellow-400 font-mono focus:border-yellow-400/50 focus:outline-none focus:ring-2 focus:ring-yellow-400/20"
           />
         </div>
@@ -456,14 +610,18 @@ export const NaturalLanguageAssistant: React.FC<NaturalLanguageAssistantProps> =
         
         <button
           onClick={handleSendMessage}
-          disabled={!input.trim()}
+          disabled={!input.trim() || isProcessingAdsbQuery}
           className="p-3 rounded-lg border border-yellow-400/30 hover:border-yellow-400/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:bg-yellow-400/10"
         >
-          <Send className="w-4 h-4 text-yellow-400" />
+          {isProcessingAdsbQuery ? (
+            <div className="w-4 h-4 border border-yellow-400 border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <Send className="w-4 h-4 text-yellow-400" />
+          )}
         </button>
       </div>
 
-      {/* Enhanced Quick Commands */}
+      {/* Enhanced Quick Commands with ADSB Examples */}
       <div className="grid grid-cols-2 gap-2 mb-4">
         <button
           onClick={() => setInput('show active flights')}
@@ -473,42 +631,46 @@ export const NaturalLanguageAssistant: React.FC<NaturalLanguageAssistantProps> =
           Show Active Flights
         </button>
         <button
-          onClick={() => setInput('show inbound flights for JFK')}
+          onClick={() => setInput('locate aircraft A1B2C3')}
           className="bg-gray-900 hover:bg-gray-800 border border-gray-600 hover:border-purple-400/50 rounded-lg px-3 py-2 text-xs text-left transition-all duration-200"
         >
-          <Brain className="w-3 h-3 inline mr-2 text-purple-400" />
-          JFK Inbound Flights
+          <Globe className="w-3 h-3 inline mr-2 text-cyan-400" />
+          Locate Aircraft
         </button>
         <button
-          onClick={() => setInput('show inbound flights for LGA')}
+          onClick={() => setInput('find downed aircraft 4D2228')}
+          className="bg-gray-900 hover:bg-gray-800 border border-gray-600 hover:border-red-400/50 rounded-lg px-3 py-2 text-xs text-left transition-all duration-200"
+        >
+          <AlertTriangle className="w-3 h-3 inline mr-2 text-red-400" />
+          Emergency Search
+        </button>
+        <button
+          onClick={() => setInput('show inbound flights for JFK')}
           className="bg-gray-900 hover:bg-gray-800 border border-gray-600 hover:border-green-400/50 rounded-lg px-3 py-2 text-xs text-left transition-all duration-200"
         >
-          <Zap className="w-3 h-3 inline mr-2 text-green-400" />
-          LGA Inbound Flights
-        </button>
-        <button
-          onClick={() => setInput('show inbound flights for EWR')}
-          className="bg-gray-900 hover:bg-gray-800 border border-gray-600 hover:border-yellow-400/50 rounded-lg px-3 py-2 text-xs text-left transition-all duration-200"
-        >
-          <Play className="w-3 h-3 inline mr-2 text-yellow-400" />
-          EWR Inbound Flights
+          <Brain className="w-3 h-3 inline mr-2 text-green-400" />
+          Airport Traffic
         </button>
       </div>
 
-      {/* Performance & Integration Stats */}
+      {/* Enhanced Performance & Integration Stats */}
       <div className="bg-gradient-to-r from-purple-400/10 to-blue-400/10 border border-purple-400/20 rounded-lg p-3">
-        <div className="grid grid-cols-4 gap-4 text-xs text-center">
+        <div className="grid grid-cols-5 gap-3 text-xs text-center">
           <div>
             <div className="text-purple-400 font-bold">30K</div>
             <div className="text-gray-400">μServices</div>
           </div>
           <div>
-            <div className="text-blue-400 font-bold">67%</div>
-            <div className="text-gray-400">Efficiency</div>
+            <div className="text-cyan-400 font-bold">LIVE</div>
+            <div className="text-gray-400">ADSB Exchange</div>
           </div>
           <div>
             <div className="text-yellow-400 font-bold">{activeProcesses.length}</div>
             <div className="text-gray-400">Auto Active</div>
+          </div>
+          <div>
+            <div className="text-blue-400 font-bold">67%</div>
+            <div className="text-gray-400">Efficiency</div>
           </div>
           <div>
             <div className="text-green-400 font-bold">100%</div>
